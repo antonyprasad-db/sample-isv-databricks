@@ -30,6 +30,20 @@ DATABRICKS_CLIENT_ID = os.environ.get("DATABRICKS_CLIENT_ID", "")
 DATABRICKS_CLIENT_SECRET = os.environ.get("DATABRICKS_CLIENT_SECRET", "")
 GENIE_SPACE_ID = os.environ.get("GENIE_SPACE_ID", "")
 
+# Used only by generate_data.py to load the sample dataset. The warehouse is
+# optional: if unset, generate_data.py resolves the one backing GENIE_SPACE_ID.
+DATABRICKS_WAREHOUSE_ID = os.environ.get("DATABRICKS_WAREHOUSE_ID", "")
+DATABRICKS_CATALOG = os.environ.get("DATABRICKS_CATALOG", "genie_demo")
+DATABRICKS_SCHEMA = os.environ.get("DATABRICKS_SCHEMA", "sales")
+
+# Optional separate identity for generate_data.py's DDL (CREATE CATALOG/SCHEMA/TABLE),
+# which the query service principal usually can't do. Keeping it distinct from
+# DATABRICKS_CLIENT_ID/SECRET means the seeding admin is never written into the gateway's
+# outbound credential provider by deploy.py. If unset, generate_data.py falls back to the
+# query service principal. This identity only seeds data; it is never used by the gateway.
+DATABRICKS_SEED_CLIENT_ID = os.environ.get("DATABRICKS_SEED_CLIENT_ID", "")
+DATABRICKS_SEED_CLIENT_SECRET = os.environ.get("DATABRICKS_SEED_CLIENT_SECRET", "")
+
 # --- AWS --------------------------------------------------------------------
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 # A "global." cross-region inference profile, chosen deliberately over a "us." one: the

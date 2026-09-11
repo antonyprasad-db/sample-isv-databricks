@@ -145,6 +145,7 @@ python deploy.py                      # register a target for the new space
 | `genie_agent.py` | The agent entrypoint hosted on **AgentCore Runtime** (`BedrockAgentCoreApp`). Deployed with the `agentcore` CLI, not run directly. |
 | `invoke_runtime.py` | Invokes the deployed Runtime agent via `invoke_agent_runtime`. |
 | `cleanup.py` | Deletes the target, credential provider, gateway, IAM role and Cognito user pool. |
+| `generate_data.py` | Loads a tiny Unity Catalog dataset (`products`, `sales`) via the SQL Statement Execution API so a fresh Genie space can answer the sample questions. Optional. |
 
 ## Getting Started
 
@@ -182,7 +183,86 @@ python deploy.py
 6. **Save configuration** — writes `gateway_config.json` (gateway id and URL, target
    id, provider ARN, Cognito client info) for the other scripts to read.
 
-### 2. Verify locally
+### 2. Load a sample dataset (optional)
+
+The sample's questions (e.g. *"What were our top 5 products by revenue last quarter?"*)
+only return answers if the Genie space is backed by data. If you don't already have a
+populated space, `generate_data.py` creates a tiny Unity Catalog dataset — one catalog,
+one schema, two small tables (`products` and `sales`, ~1,400 rows spanning ~18
+months) — enough to answer the questions this sample ships with:
+
+```bash
+python generate_data.py                 # create + load catalog `genie_demo`, schema `sales`
+python generate_data.py --drop          # drop what this script created, then recreate
+python generate_data.py --drop --yes    # ... skipping the confirmation prompt
+```
+
+It runs over the [SQL Statement Execution API](https://docs.databricks.com/en/dev-tools/sql-execution-tutorial.html)
+(no extra dependencies, no PAT) and auto-resolves the SQL warehouse behind `GENIE_SPACE_ID`
+(or set `DATABRICKS_WAREHOUSE_ID`). The target catalog/schema default to `genie_demo` /
+`sales` (override with `DATABRICKS_CATALOG` / `DATABRICKS_SCHEMA`).
+
+> **Use a separate identity for the DDL — do not reuse the gateway's service principal as
+> an admin.** Creating a catalog/schema/tables needs privileges the least-privilege *query*
+> service principal usually lacks. Set a distinct seeding identity and the script runs its
+> DDL as that identity, then grants the query SP read access:
+>
+> ```bash
+> export DATABRICKS_SEED_CLIENT_ID="<app ID of an SP that can CREATE CATALOG/SCHEMA>"
+> export DATABRICKS_SEED_CLIENT_SECRET="<its OAuth M2M secret>"
+> ```
+>
+> This matters because `deploy.py` writes `DATABRICKS_CLIENT_ID`/`DATABRICKS_CLIENT_SECRET`
+> into the gateway's outbound credential provider — its identity to Databricks. Editing
+> those to an admin's, even briefly, silently makes the *gateway* run as that admin and
+> breaks the governance story this sample demonstrates. If `DATABRICKS_SEED_*` is unset the
+> script falls back to the query SP (fine only when it already owns the target catalog).
+
+**Safety.** The script refuses to modify `products`/`sales` tables it didn't create, and
+`--drop` only removes a schema it recorded creating (tracked in the gitignored
+`seed_state.json`) and prompts first. It is also the teardown for the sample data —
+`cleanup.py` removes only AWS resources, not these Unity Catalog objects.
+
+Then add the two tables to your Genie space as data assets — this is a manual step in the
+Databricks UI:
+
+1. Open your space (**Genie** in the left nav) → **Settings** (or the **Data** / **+ Add**
+   panel, depending on your workspace version).
+2. Add `<catalog>.<schema>.products` and `<catalog>.<schema>.sales` as data assets (with the
+   defaults above, `genie_demo.sales.products` and `genie_demo.sales.sales`).
+3. **Save** the space.
+
+Then confirm the SP has the space / warehouse / Unity Catalog grants from
+[Service principal permissions](#service-principal-permissions).
+
+> **"You don't have SELECT access" warning when adding a table — safe to ignore.** When
+> `generate_data.py` seeds the data as the query service principal (the default when
+> `DATABRICKS_SEED_*` is unset), the SP *owns* the resulting schema, so it can read the tables
+> at runtime. But **you**, the human adding assets in the UI, are a different identity, and the
+> SP-owned schema isn't granted to your personal login — so the UI shows:
+>
+> ```
+> Warning: You don't have SELECT access on 'genie_demo.sales.products'.
+> ```
+>
+> This is about your UI preview identity, **not** the runtime path. Add the asset past the
+> warning and proceed — Genie queries run as the SP (M2M), and the SP owns the tables, so the
+> end-to-end flow works regardless. This was verified end-to-end: `invoke.py` and
+> `invoke_runtime.py` both returned the seeded products despite the UI warning.
+>
+> To clear the warning so you can also preview data in the UI, grant your own login (run as an
+> admin in a SQL editor, substituting your Databricks login email and the catalog/schema you
+> seeded):
+>
+> ```sql
+> GRANT USE CATALOG ON CATALOG <catalog>            TO `<your-databricks-login-email>`;
+> GRANT USE SCHEMA  ON SCHEMA  <catalog>.<schema>   TO `<your-databricks-login-email>`;
+> GRANT SELECT      ON SCHEMA  <catalog>.<schema>   TO `<your-databricks-login-email>`;
+> ```
+>
+> (Schema-level `SELECT` covers both `products` and `sales`.)
+
+### 3. Verify locally
 
 ```bash
 python invoke.py --list-tools                 # confirm the tool surface
@@ -199,7 +279,7 @@ deployment problems.
 > the first query cold-starts it and can take a couple of minutes. That is the warehouse
 > starting, not a broken integration.
 
-### 3. Deploy to AgentCore Runtime
+### 4. Deploy to AgentCore Runtime
 
 > **The `agentcore` CLI used below is deprecated.** These commands come from
 > `bedrock-agentcore-starter-toolkit`, which is deliberately **not** in
@@ -243,14 +323,14 @@ token left every request after expiry failing with a 401.
 > region as the gateway**, otherwise it cannot reach the gateway endpoint. Verify the
 > `region:` value in the generated `.bedrock_agentcore.yaml` before deploying.
 
-### 4. Validate governance
+### 5. Validate governance
 
 Unity Catalog audit logs record the SQL executed by the service principal, and AgentCore
 Runtime and Gateway emit CloudWatch traces for each tool invocation. Check both to confirm
 what actually ran and under whose identity — this is the step that tells you whether the
 governance story holds in your own workspace.
 
-### 5. Clean up
+### 6. Clean up
 
 ```bash
 agentcore destroy      # remove the deployed Runtime agent
