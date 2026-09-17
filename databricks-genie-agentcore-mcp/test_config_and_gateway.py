@@ -10,8 +10,11 @@ whose failure is silent or only surfaces mid-deployment against a live account:
     - grant_oauth_permissions()     the IAM policy shape -- notably that the secret
                                     read is scoped to one ARN and never falls back to "*"
 
-Standard library only, so the sample gains no test dependency:
+No test framework and no new dependency beyond the sample's own requirements.txt (the
+tests import the sample's modules, which import boto3/requests/yaml), no AWS account, no
+network:
 
+    pip install -r requirements.txt
     python -m unittest test_config_and_gateway -v
 """
 
@@ -50,9 +53,10 @@ class RequireDatabricksConfigTest(unittest.TestCase):
 
     def test_each_missing_value_is_named(self):
         for missing in self._ALL_PRESENT:
-            with self.subTest(missing=missing):
-                values = dict(self._ALL_PRESENT, **{missing: ""})
-                self._patch(values)
+            values = dict(self._ALL_PRESENT, **{missing: ""})
+            # Patch per iteration (context manager) so each set of globals is
+            # unwound before the next, rather than stacking to the end of the method.
+            with self.subTest(missing=missing), mock.patch.multiple(config, **values):
                 with self.assertRaises(SystemExit) as ctx:
                     config.require_databricks_config()
                 self.assertIn(missing, str(ctx.exception))
@@ -187,9 +191,17 @@ class GrantOauthPermissionsPolicyTest(unittest.TestCase):
         self.assertEqual(len(secret_stmts), 1)
         self.assertEqual(secret_stmts[0]["Resource"], arn)
         # The whole reason the ARN is threaded through: never grant read on every secret.
-        self.assertNotIn("*", _resources_of(secret_stmts[0]))
+        # Guard the two ways that regresses — a bare "*" anywhere in the policy, or a
+        # wildcard-suffixed secret ARN — neither of which the exact assertEqual above rules
+        # out on its own if the resource were built differently.
+        for stmt in doc["Statement"]:
+            self.assertNotIn("*", _resources_of(stmt))
+        self.assertFalse(secret_stmts[0]["Resource"].endswith("*"))
 
     def test_no_secret_statement_when_arn_absent(self):
+        # Defence in depth: create_credential_provider's guard makes an empty secret_arn
+        # unreachable in the deploy flow, but grant_oauth_permissions must still degrade
+        # safely (omit the statement, never widen to "*") if ever called with one.
         _, doc = self._run(secret_arn="")
         for stmt in doc["Statement"]:
             self.assertNotIn("secretsmanager:GetSecretValue", _actions_of(stmt))

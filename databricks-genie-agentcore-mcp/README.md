@@ -146,8 +146,8 @@ python deploy.py                      # register a target for the new space
 | `invoke_runtime.py` | Invokes the deployed Runtime agent via `invoke_agent_runtime`. |
 | `cleanup.py` | Deletes the target, credential provider, gateway, IAM role and Cognito user pool. |
 | `generate_data.py` | Loads a tiny Unity Catalog dataset (`products`, `sales`) via the SQL Statement Execution API so a fresh Genie space can answer the sample questions. Optional. |
-| `test_cleanup_contract.py` | Unit tests pinning `cleanup.py`'s teardown ownership and state contract. Standard library only. |
-| `test_config_and_gateway.py` | Unit tests for the config and gateway wiring: env fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy shape. Standard library only. |
+| `test_cleanup_contract.py` | Unit tests pinning `cleanup.py`'s teardown ownership and state contract. No test framework and no new dependency beyond `requirements.txt`. |
+| `test_config_and_gateway.py` | Unit tests for the config and gateway wiring: env fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy shape. No test framework and no new dependency beyond `requirements.txt`. |
 
 ## Getting Started
 
@@ -341,13 +341,16 @@ python cleanup.py      # remove the target, credential provider, gateway, IAM ro
 
 ## Tests
 
-The unit tests use only the standard library — no extra dependencies, no AWS account,
-no network. They stub the boto3 clients and cover the pieces whose failure is silent or
+Standard library only: no test framework and no new dependency beyond the sample's own
+`requirements.txt`, no AWS account, no network. The tests import the sample's modules (which
+import `boto3`, `requests` and `yaml` at module scope), so install the requirements first,
+then run them. They stub the boto3 clients and cover the pieces whose failure is silent or
 only surfaces mid-deployment: teardown ownership (`test_cleanup_contract.py`), and config
 fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy
 shape (`test_config_and_gateway.py`).
 
 ```bash
+pip install -r requirements.txt              # the tests import the sample's modules
 python -m unittest discover -p "test_*.py"   # run all
 python -m unittest test_config_and_gateway -v
 ```
