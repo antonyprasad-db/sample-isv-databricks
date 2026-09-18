@@ -341,15 +341,19 @@ python cleanup.py      # remove the target, credential provider, gateway, IAM ro
 
 ## Tests
 
-Standard library only: no test framework and no new dependency beyond the sample's own
-`requirements.txt`, no AWS account, no network. The tests import the sample's modules (which
+The tests need no test framework and no dependency beyond the sample's own
+`requirements.txt` — no AWS account, no network. They import the sample's modules (which
 import `boto3`, `requests` and `yaml` at module scope), so install the requirements first,
 then run them. They stub the boto3 clients and cover the pieces whose failure is silent or
 only surfaces mid-deployment: teardown ownership (`test_cleanup_contract.py`), and config
 fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy
 shape (`test_config_and_gateway.py`).
 
+Run them from this package directory — `unittest discover` from the repo root finds no
+tests and exits 0, which reads as a green run that tested nothing:
+
 ```bash
+cd databricks-genie-agentcore-mcp
 pip install -r requirements.txt              # the tests import the sample's modules
 python -m unittest discover -p "test_*.py"   # run all
 python -m unittest test_config_and_gateway -v
