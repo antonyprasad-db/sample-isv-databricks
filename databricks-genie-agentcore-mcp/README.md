@@ -146,6 +146,8 @@ python deploy.py                      # register a target for the new space
 | `invoke_runtime.py` | Invokes the deployed Runtime agent via `invoke_agent_runtime`. |
 | `cleanup.py` | Deletes the target, credential provider, gateway, IAM role and Cognito user pool. |
 | `generate_data.py` | Loads a tiny Unity Catalog dataset (`products`, `sales`) via the SQL Statement Execution API so a fresh Genie space can answer the sample questions. Optional. |
+| `test_cleanup_contract.py` | Unit tests pinning `cleanup.py`'s teardown ownership and state contract. No test framework and no new dependency beyond `requirements.txt`. |
+| `test_config_and_gateway.py` | Unit tests for the config and gateway wiring: env fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy shape. No test framework and no new dependency beyond `requirements.txt`. |
 
 ## Getting Started
 
@@ -335,6 +337,26 @@ governance story holds in your own workspace.
 ```bash
 agentcore destroy      # remove the deployed Runtime agent
 python cleanup.py      # remove the target, credential provider, gateway, IAM role and Cognito pool
+```
+
+## Tests
+
+The tests need no test framework and no dependency beyond the sample's own
+`requirements.txt` — no AWS account, no network. They import the sample's modules (which
+import `boto3`, `requests` and `yaml` at module scope), so install the requirements first,
+then run them. They stub the boto3 clients and cover the pieces whose failure is silent or
+only surfaces mid-deployment: teardown ownership (`test_cleanup_contract.py`), and config
+fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy
+shape (`test_config_and_gateway.py`).
+
+Run them from this package directory — `unittest discover` from the repo root finds no
+tests and exits 0, which reads as a green run that tested nothing:
+
+```bash
+cd databricks-genie-agentcore-mcp
+pip install -r requirements.txt              # the tests import the sample's modules
+python -m unittest discover -p "test_*.py"   # run all
+python -m unittest test_config_and_gateway -v
 ```
 
 ## Resources
