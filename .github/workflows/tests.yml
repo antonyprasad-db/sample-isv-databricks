@@ -1,0 +1,65 @@
+name: Tests
+
+# The sample's unit tests are hermetic -- no AWS account, no network, no test framework
+# beyond the standard library -- so they are cheap enough to gate every pull request.
+# Nothing else runs them today: CodeQL default setup only fires on pushes to main and on
+# a schedule, so a pull request currently reports no checks at all.
+on:
+  pull_request:
+    paths:
+      - "databricks-genie-agentcore-mcp/**"
+      - ".github/workflows/tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "databricks-genie-agentcore-mcp/**"
+      - ".github/workflows/tests.yml"
+  workflow_dispatch: {}
+
+# Deny everything at the top level; each job grants only what it needs.
+permissions: {}
+
+jobs:
+  unittest:
+    name: unittest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.10 is the floor the sample's README documents; 3.13 is current.
+        python-version: ["3.10", "3.13"]
+    defaults:
+      run:
+        # `unittest discover` from the repository root finds no tests and exits 0 -- a green
+        # run that tested nothing. Every step runs from the package directory instead, which
+        # is also what the sample's README instructs readers to do.
+        working-directory: databricks-genie-agentcore-mcp
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the sample's requirements
+        # The tests import the sample's own modules, which import boto3, requests and yaml
+        # at module scope, so the requirements are needed even though no test calls AWS.
+        run: pip install -r requirements.txt
+
+      - name: Assert the suite collected tests
+        # Guards the silent-green failure described above: if the files move or the pattern
+        # stops matching, fail here rather than report a pass over zero tests.
+        run: >-
+          python -c "import sys, unittest;
+          n = unittest.TestLoader().discover('.', pattern='test_*.py').countTestCases();
+          print(f'collected {n} test(s)');
+          sys.exit(0 if n else 'collected 0 tests -- discovery is broken, not the suite passing')"
+
+      - name: Run the unit tests
+        # No AWS credentials and no network egress are configured for this job. The suite
+        # claims to need neither, so a failure here is a regression in that claim.
+        run: python -m unittest discover -p "test_*.py" -v
