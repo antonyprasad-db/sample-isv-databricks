@@ -1,11 +1,12 @@
 # Every pin is `~=`: a floor plus a same-major ceiling. The floor is the release that
 # introduced what this sample calls; the ceiling keeps a major bump from arriving silently
 # in a reader's first `pip install`.
-# mcp is capped below 2.x because strands-agents requires it -- strands-agents 1.54 declares
-# `mcp>=1.23.0,<2.0.0`, so a 2.x pin here makes the resolver fail. Within 1.x the floor is
-# 1.29, the release where LATEST_PROTOCOL_VERSION becomes "2025-11-25", the version this
-# gateway declares (MCP_PROTOCOL_VERSION in gateway_setup.py); older clients fail the
-# initialize handshake.
+# mcp is capped below 2.x because strands-agents requires it -- strands-agents 1.53 declares
+# `mcp>=1.23.0,<2.0.0`, so a 2.x pin here makes the resolver fail. Within 1.x the hard
+# minimum is 1.24.0, the release where LATEST_PROTOCOL_VERSION becomes "2025-11-25" -- the
+# version this gateway declares (MCP_PROTOCOL_VERSION in gateway_setup.py) and the one this
+# sample's own client proposes on connect, so below 1.24.0 it fails the initialize handshake
+# against its own gateway. The pin sits higher, at 1.29.
 strands-agents~=1.53
 bedrock-agentcore~=1.22
 mcp~=1.29
