@@ -148,6 +148,7 @@ python deploy.py                      # register a target for the new space
 | `generate_data.py` | Loads a tiny Unity Catalog dataset (`products`, `sales`) via the SQL Statement Execution API so a fresh Genie space can answer the sample questions. Optional. |
 | `test_cleanup_contract.py` | Unit tests pinning `cleanup.py`'s teardown ownership and state contract. No test framework and no new dependency beyond `requirements.txt`. |
 | `test_config_and_gateway.py` | Unit tests for the config and gateway wiring: env fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy shape. No test framework and no new dependency beyond `requirements.txt`. |
+| `test_generate_data.py` | Unit tests for `generate_data.py`'s data-safety rules: SQL literal escaping, the seeding identity, the case-insensitive existence checks, the `--drop` and adopted-table refusals, and the bounded HTTP/statement polling. No test framework and no new dependency beyond `requirements.txt`. |
 
 ## Getting Started
 
@@ -345,9 +346,12 @@ The tests need no test framework and no dependency beyond the sample's own
 `requirements.txt` — no AWS account, no network. They import the sample's modules (which
 import `boto3`, `requests` and `yaml` at module scope), so install the requirements first,
 then run them. They stub the boto3 clients and cover the pieces whose failure is silent or
-only surfaces mid-deployment: teardown ownership (`test_cleanup_contract.py`), and config
+only surfaces mid-deployment: teardown ownership (`test_cleanup_contract.py`); config
 fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy
-shape (`test_config_and_gateway.py`).
+shape (`test_config_and_gateway.py`); and — for the one script here that writes to your
+Unity Catalog — SQL literal escaping, the seeding identity, and the refusals that keep
+`generate_data.py` from touching a catalog, schema or table it did not create
+(`test_generate_data.py`).
 
 Run them from this package directory — `unittest discover` from the repo root finds no
 tests and exits 0, which reads as a green run that tested nothing:
