@@ -266,6 +266,15 @@ python deploy.py
 6. **Save configuration** — writes `gateway_config.json` (gateway id and URL, target
    id, provider ARN, Cognito client info) for the other scripts to read.
 
+> **Changing the Databricks OAuth scope.** The outbound token is scoped to `genie` in
+> `deploy.py` (`"scopes": ["genie"]`). That scope is baked into the target at registration, so
+> changing it means editing that line and re-registering the target — `python cleanup.py` then
+> `python deploy.py`, the same round trip as changing `GENIE_SPACE_ID`. Note that two different
+> scopes exist in this stack and they are easy to confuse: the **inbound** Cognito
+> resource-server scope (`invoke`, in `gateway_setup.py`) authorizes the caller into the
+> gateway, while this **outbound** Databricks scope decides what the gateway may do in the
+> workspace.
+
 ### 2. Load a sample dataset (optional)
 
 The sample's questions (e.g. *"What were our top 5 products by revenue last quarter?"*)
