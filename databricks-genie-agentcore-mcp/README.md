@@ -112,23 +112,24 @@ that file if present.
 export DATABRICKS_HOST="https://dbc-xxxxxxxx-xxxx.cloud.databricks.com"
 export DATABRICKS_CLIENT_ID="<service principal application ID>"
 export DATABRICKS_CLIENT_SECRET="<OAuth M2M secret>"
-export GENIE_SPACE_ID="<Genie space ID, from the space URL>"
+export GENIE_SPACE_ID="<Genie space ID>"   # see "Pointing at a Genie space" below
 export AWS_REGION="us-east-1"          # optional, defaults to us-east-1
 ```
 
 ### Pointing at a Genie space
 
-**Find the space ID.** The console path changed with the Spaces-to-Agents rename, so prefer
-the API or the Configure panel over the address bar:
+**Find the space ID.** Prefer the API or the Configure panel over the address bar:
 
 ```bash
 # List your Genie Agents and read space_id from the response
 databricks api get /api/2.0/genie/spaces | jq '.spaces[] | {space_id, title}'
 ```
 
-Or open the agent and read **Configure → About**, where the UI labels it **Agent ID**. Use that
-value as `GENIE_SPACE_ID`: the UI says Agent ID, the API returns `space_id`, and the environment
-variable keeps its original name. The
+Or open the agent and read **Configure → About**, under **About this agent**, where the UI labels
+it **Agent ID**. Use that value as `GENIE_SPACE_ID`: the UI says Agent ID, the API returns
+`space_id`, and the environment variable keeps its original name. The id also appears in the
+address bar, but prefer either route above: the console path has already changed once with the
+Spaces-to-Agents rename. The
 [service-principal grants](#service-principal-permissions) above are per-space — they do not
 carry over from another space.
 
@@ -386,11 +387,12 @@ deployment problems.
 > steps below as written:
 >
 > ```bash
-> pip install bedrock-agentcore-starter-toolkit
+> pip install -U 'bedrock-agentcore-starter-toolkit==0.3.13'
 > ```
 
 ```bash
-agentcore configure --entrypoint genie_agent.py --non-interactive --region <your-region>
+agentcore configure --entrypoint genie_agent.py --non-interactive \
+  --deployment-type container --region <your-region>
 agentcore deploy
 python invoke_runtime.py
 ```
@@ -400,23 +402,51 @@ Cognito token and the MCP session are established per invocation rather than onc
 start: client-credentials tokens expire while a warm container does not, so a cold-start
 token left every request after expiry failing with a 401.
 
-> **Pass configuration as environment variables, not as a file.** `gateway_config.json`
-> is gitignored and holds the Cognito client secret. Depending on the toolkit version the
-> build may exclude it from the image — in which case the agent has no configuration — or
-> include it, which bakes a long-lived OAuth secret into an ECR layer. Neither is what you
-> want. Set these five on the Runtime instead, reading the values from `gateway_config.json`
-> on your machine: `GATEWAY_URL`, `COGNITO_TOKEN_ENDPOINT`, `COGNITO_CLIENT_ID`,
-> `COGNITO_CLIENT_SECRET`, `COGNITO_SCOPE`. For anything beyond a sample, hold the secret
-> in Secrets Manager and grant the Runtime role read access rather than passing it inline.
+> **Pass configuration as environment variables, not as a file.** `gateway_config.json` is
+> gitignored and holds the Cognito client secret, and the toolkit does not exclude it from the
+> build on **either** deployment path: both filter on the same `dockerignore.template`, which
+> excludes `.env` and `.bedrock_agentcore.yaml` but never this file. So on `container` the secret
+> lands in an image layer, and on `direct_code_deploy` it lands in the `code.zip` uploaded to S3.
+> Pass the five values explicitly instead, reading them from `gateway_config.json` on your
+> machine: `agentcore deploy --env GATEWAY_URL=... --env COGNITO_TOKEN_ENDPOINT=... --env
+> COGNITO_CLIENT_ID=... --env COGNITO_CLIENT_SECRET=... --env COGNITO_SCOPE=...`. That keeps the
+> deployed agent off the file, but it does not remove the file from the artifact. To do that, move
+> `gateway_config.json` aside for the build and **put it back afterwards**: it is the record
+> `cleanup.py` tears down from, and cleanup cannot remove what it cannot read. For anything beyond
+> a sample, hold the secret in Secrets Manager and grant the Runtime role read access rather than
+> passing it inline.
 > `genie_agent.py` prefers these variables and falls back to the state file for local runs.
 
-> **Pass `--non-interactive` and `--region`.** Without the first, `configure` prompts for the
-> agent name, the execution role, the ECR repository and the dependency file — and with no
-> terminal on stdin those prompts raise `EOFError`, so it exits without writing
-> `.bedrock_agentcore.yaml`. Without the second it may default to a region other than the one
-> you created the gateway in, and the deployed agent must run in the **same region as the
-> gateway** or it cannot reach the gateway endpoint. Verify the `region:` value in the
-> generated `.bedrock_agentcore.yaml` before deploying.
+> **Pass all three flags.** Measured on starter toolkit 0.3.13. Without `--non-interactive`,
+> `configure` prompts in order for the agent name, the dependency file, the deployment type, the
+> execution role, and then the ECR repository on `container` or the S3 bucket on
+> `direct_code_deploy`. With no terminal on stdin the first prompt raises `EOFError` inside
+> `prompt_toolkit`, Click catches it and exits `Aborted!`, so what you actually see is
+> `Warning: Input is not a terminal (fd=0).` followed by `Aborted!` with no traceback, and no
+> `.bedrock_agentcore.yaml` for `agentcore deploy` to read. Piping the answers in instead of
+> passing the flag is worse, not better: `configure` consumes whatever arrives on stdin as the
+> responses rather than failing.
+>
+> `--non-interactive` on its own does not make the outcome deterministic, which is why
+> `--deployment-type` is pinned above. Given no deployment type, the toolkit selects
+> `direct_code_deploy` when both `uv` and `zip` are on your PATH and falls back to `container`
+> with a warning when either is missing, so one command configures different deployment paths on
+> different machines. `container` is pinned because it is the only value that configures
+> everywhere: `--deployment-type direct_code_deploy` exits with
+> `Error: Direct Code Deploy deployment unavailable (...)` when `uv` or `zip` is absent. Two
+> consequences worth knowing. `container` builds through AWS CodeBuild, which creates an S3
+> source bucket, a CodeBuild project and execution role, and an ECR repository, so the principal
+> running this needs more than the AgentCore and IAM permissions in the prerequisites. And if you
+> configured this agent from an earlier version of these steps, `configure` refuses to change
+> deployment type in place: run `agentcore destroy --agent genie_agent` first, or configure under
+> a new `--name`. `direct_code_deploy` is otherwise expected to work, since `invoke_runtime.py`
+> reads only `agent_arn` from `.bedrock_agentcore.yaml` and both paths write it, but it is not
+> the path exercised here.
+>
+> Without `--region`, `configure` may default to a region other than the one you created the
+> gateway in, and the deployed agent must run in the **same region as the gateway** or it cannot
+> reach the gateway endpoint. Verify the `region:` value in the generated
+> `.bedrock_agentcore.yaml` before deploying.
 
 ### 5. Validate governance
 
