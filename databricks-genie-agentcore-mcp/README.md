@@ -118,8 +118,17 @@ export AWS_REGION="us-east-1"          # optional, defaults to us-east-1
 
 ### Pointing at a Genie space
 
-**Find the space ID.** Open the space under **Genie** in the left nav; the ID is the last
-path segment of the space URL (`.../genie/rooms/<space-id>`). Use it as `GENIE_SPACE_ID`. The
+**Find the space ID.** The console path changed with the Spaces-to-Agents rename, so prefer
+the API or the Configure panel over the address bar:
+
+```bash
+# List your Genie Agents and read space_id from the response
+databricks api get /api/2.0/genie/spaces | jq '.spaces[] | {space_id, title}'
+```
+
+Or open the agent and read **Configure → About**, where the UI labels it **Agent ID**. Use that
+value as `GENIE_SPACE_ID`: the UI says Agent ID, the API returns `space_id`, and the environment
+variable keeps its original name. The
 [service-principal grants](#service-principal-permissions) above are per-space — they do not
 carry over from another space.
 
@@ -257,6 +266,15 @@ python deploy.py
 6. **Save configuration** — writes `gateway_config.json` (gateway id and URL, target
    id, provider ARN, Cognito client info) for the other scripts to read.
 
+> **Changing the Databricks OAuth scope.** The outbound token is scoped to `genie` in
+> `deploy.py` (`"scopes": ["genie"]`). That scope is baked into the target at registration, so
+> changing it means editing that line and re-registering the target — `python cleanup.py` then
+> `python deploy.py`, the same round trip as changing `GENIE_SPACE_ID`. Note that two different
+> scopes exist in this stack and they are easy to confuse: the **inbound** Cognito
+> resource-server scope (`invoke`, in `gateway_setup.py`) authorizes the caller into the
+> gateway, while this **outbound** Databricks scope decides what the gateway may do in the
+> workspace.
+
 ### 2. Load a sample dataset (optional)
 
 The sample's questions (e.g. *"What were our top 5 products by revenue last quarter?"*)
@@ -372,7 +390,7 @@ deployment problems.
 > ```
 
 ```bash
-agentcore configure --entrypoint genie_agent.py   # interactive: prompts for deployment type
+agentcore configure --entrypoint genie_agent.py --non-interactive --region <your-region>
 agentcore deploy
 python invoke_runtime.py
 ```
@@ -392,17 +410,23 @@ token left every request after expiry failing with a 401.
 > in Secrets Manager and grant the Runtime role read access rather than passing it inline.
 > `genie_agent.py` prefers these variables and falls back to the state file for local runs.
 
-> **Check the region.** `agentcore configure` may default to a different region than
-> the one you created the gateway in. The deployed agent must run in the **same
-> region as the gateway**, otherwise it cannot reach the gateway endpoint. Verify the
-> `region:` value in the generated `.bedrock_agentcore.yaml` before deploying.
+> **Pass `--non-interactive` and `--region`.** Without the first, `configure` prompts for the
+> agent name, the execution role, the ECR repository and the dependency file — and with no
+> terminal on stdin those prompts raise `EOFError`, so it exits without writing
+> `.bedrock_agentcore.yaml`. Without the second it may default to a region other than the one
+> you created the gateway in, and the deployed agent must run in the **same region as the
+> gateway** or it cannot reach the gateway endpoint. Verify the `region:` value in the
+> generated `.bedrock_agentcore.yaml` before deploying.
 
 ### 5. Validate governance
 
-Unity Catalog audit logs record the SQL executed by the service principal, and AgentCore
-Runtime and Gateway emit CloudWatch traces for each tool invocation. Check both to confirm
-what actually ran and under whose identity — this is the step that tells you whether the
-governance story holds in your own workspace.
+Unity Catalog's `system.access.audit` records the SQL, attributed to the **service principal** —
+the person who asked the question appears nowhere in it. AgentCore Runtime and Gateway emit
+CloudWatch traces per tool invocation, which show that a call happened and how long it took, not
+which rows it was allowed to read. So you can answer "who ran this query?" for the machine, not
+for the human: correlating a person to a statement means joining a CloudWatch trace to a Unity
+Catalog audit row yourself, on a request id you choose to propagate. Run this in your own
+workspace, since grants and policies differ between workspaces.
 
 ### 6. Clean up
 
