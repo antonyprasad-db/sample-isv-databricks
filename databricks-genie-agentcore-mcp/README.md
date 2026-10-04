@@ -34,7 +34,7 @@ This sample registers the [Databricks-managed Genie MCP endpoint](https://docs.d
 > an adopted role belonging to another region; it cannot detect a concurrent deployment in
 > the same region. Tear one down with `cleanup.py` before standing up another.
 
-1. AWS credentials configured (`aws configure`) with permissions to create AgentCore resources and IAM roles, plus **Bedrock access to a current model**. Step 4 pins the container deployment path, which builds through CodeBuild, so the same principal also needs ECR, CodeBuild and S3 permissions covering the repository, build project and source bucket the toolkit auto-creates. The default is the `global.anthropic.claude-sonnet-5` cross-region inference profile; override it with `MODEL_ID`. Note that current Anthropic profile ids carry no date/version suffix — `global.anthropic.claude-sonnet-5` is the whole id. Confirm what your own account can call with `aws bedrock list-inference-profiles`; Bedrock can gate an older model line on an account that has not called it recently, and that surfaces as a `ResourceNotFoundException` on your first question rather than as a model-access error.
+1. AWS credentials configured (`aws configure`) with permissions to create AgentCore resources and IAM roles, plus **Bedrock access to a current model**. Step 4 pins the container deployment path, which builds through CodeBuild, so the same principal also needs ECR, CodeBuild and S3 permissions covering the repository, build project and source bucket the toolkit auto-creates, plus `iam:PassRole` on the execution role, which `CreateProject` is handed rather than creating. Step 4 also uses `jq`. The default is the `global.anthropic.claude-sonnet-5` cross-region inference profile; override it with `MODEL_ID`. Note that current Anthropic profile ids carry no date/version suffix — `global.anthropic.claude-sonnet-5` is the whole id. Confirm what your own account can call with `aws bedrock list-inference-profiles`; Bedrock can gate an older model line on an account that has not called it recently, and that surfaces as a `ResourceNotFoundException` on your first question rather than as a model-access error.
 2. Databricks workspace on AWS with Unity Catalog enabled and at least one [Genie Agent](https://docs.databricks.com/aws/en/genie) with Trusted Assets defined
 3. Databricks service principal with an [OAuth M2M secret](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m). The service principal needs **all three** of the following — see [Service principal permissions](#service-principal-permissions) below, as a missing grant does not surface until the first real query:
    - `CAN_RUN` on the Genie Agent
@@ -279,8 +279,8 @@ python deploy.py
 ### 2. Load a sample dataset (optional)
 
 The sample's questions (e.g. *"What were our top 5 products by revenue last quarter?"*)
-only return answers if the Genie Agent is backed by data. If you don't already have a
-populated agent, `generate_data.py` creates a tiny Unity Catalog dataset — one catalog,
+only return answers if the Genie Agent is backed by data. If you don't already have an
+agent backed by data, `generate_data.py` creates a tiny Unity Catalog dataset — one catalog,
 one schema, two small tables (`products` and `sales`, ~1,400 rows spanning ~18
 months) — enough to answer the questions this sample ships with:
 
@@ -389,21 +389,21 @@ deployment problems.
 > ```
 
 ```bash
-agentcore configure --entrypoint genie_agent.py --non-interactive \
-  --deployment-type container --region <your-region>
+set -euo pipefail    # jq or mv failing silently would deploy with no configuration
 
-# Move the Cognito secret out of the build context, then pass its values as Runtime
-# environment variables. Both halves matter, and the --env flags must be repeated on
-# every deploy. See the note below.
-CFG="$(mktemp -d)/gateway_config.json"
-mv gateway_config.json "$CFG"
+agentcore configure --entrypoint genie_agent.py --non-interactive \
+  --deployment-type container --disable-memory --region <your-region>
+
+# Keep the Cognito secret out of the build, then pass its values as Runtime
+# environment variables. Repeat the --env flags on EVERY deploy; see the note below.
+mv gateway_config.json gateway_config.json.bak
 agentcore deploy $(jq -r '
   "--env GATEWAY_URL=" + .gateway_url,
   "--env COGNITO_TOKEN_ENDPOINT=" + .client_info.token_endpoint,
   "--env COGNITO_CLIENT_ID=" + .client_info.client_id,
   "--env COGNITO_CLIENT_SECRET=" + .client_info.client_secret,
-  "--env COGNITO_SCOPE=" + .client_info.scope' "$CFG")
-mv "$CFG" gateway_config.json
+  "--env COGNITO_SCOPE=" + .client_info.scope' gateway_config.json.bak)
+mv gateway_config.json.bak gateway_config.json
 
 python invoke_runtime.py
 ```
@@ -419,22 +419,30 @@ token left every request after expiry failing with a 401.
 > never this file. So on `container` the secret lands in an image layer, and on
 > `direct_code_deploy` in the `code.zip` uploaded to S3.
 >
-> Moving it aside has to mean **outside the package directory**. This sample's `.gitignore` uses
-> the glob `gateway_config.json*`, so renaming it to `gateway_config.json.bak` in place still
-> looks ignored and still ships, because `dockerignore.template` has no `gateway_config*` entry
-> at all. Move it back afterwards: it is the record `cleanup.py` tears down from, and cleanup
-> cannot remove what it cannot read.
+> A rename in place is enough, and `.bak` is the rename to use: `dockerignore.template` lists
+> `*.bak`, and both packagers match it with `fnmatch`, so `gateway_config.json.bak` is excluded
+> on both paths. This sample's `.gitignore` globs `gateway_config.json*`, so it stays out of git
+> too. Move it back afterwards: it is the record `cleanup.py` tears down from, and cleanup cannot
+> remove what it cannot read.
+>
+> On `container` the file would otherwise reach S3 as well as ECR, since the source tree is
+> zipped to the CodeBuild source bucket before the image is built.
 >
 > The five variable names are not keys in that file, which is why the block uses `jq`.
 > `gateway_url` is top level; `client_id`, `client_secret`, `token_endpoint` and `scope` sit
 > under `client_info`.
 >
-> **`--env` does not persist.** `UpdateAgentRuntime` replaces the whole environment map, and the
-> toolkit sends `environmentVariables` on every deploy, coercing an absent `--env` to `{}`. A
-> later bare `agentcore deploy` therefore drops all five silently: `_load_config` finds no
-> `GATEWAY_URL`, falls through to the state file you just moved aside, and every invocation fails
-> with `No configuration found`. Repeat the flags each time, or for anything beyond a sample hold
+> **`--env` does not persist, and the failure is silent.** `UpdateAgentRuntime` replaces the
+> whole environment map, and the toolkit sends `environmentVariables` on every deploy, coercing an
+> absent `--env` to `{}`. So a later bare `agentcore deploy` drops all five. Worse, because the
+> rename above is undone once the build finishes, that deploy also re-ships `gateway_config.json`,
+> and `_load_config` falls back to it and **succeeds** with the secret in the new image layer.
+> There is no error to warn you. Repeat the flags every time, or for anything beyond a sample hold
 > the values in Secrets Manager and grant the Runtime role read access.
+>
+> The secret is on the command line here, so it lands in your shell history and is visible to
+> `ps` during the build. Prefix the command with a space if your shell honours
+> `HISTCONTROL=ignorespace`, or source the value from Secrets Manager for this step.
 > `genie_agent.py` prefers these variables and falls back to the state file for local runs.
 
 > **Pass all three flags.** Measured on starter toolkit 0.3.13. Without `--non-interactive`,
@@ -482,7 +490,7 @@ workspace, since grants and policies differ between workspaces.
 ### 6. Clean up
 
 ```bash
-agentcore destroy --delete-ecr-repo   # the Runtime agent, its ECR images and the repository
+agentcore destroy --agent genie_agent --delete-ecr-repo   # agent, ECR images, repository
 python cleanup.py                     # target, credential provider, gateway, IAM role, Cognito pool
 ```
 
