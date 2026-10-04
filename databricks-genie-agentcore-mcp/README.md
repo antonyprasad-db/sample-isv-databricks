@@ -1,6 +1,6 @@
 # Databricks Genie via Amazon Bedrock AgentCore Gateway (MCP)
 
-Expose a [Databricks Genie](https://docs.databricks.com/en/genie/index.html) space as a governed MCP tool to AI agents through [Amazon Bedrock AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html), with the agent hosted on [AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime.html). Agents ask plain-English business questions; Genie returns lakehouse-native SQL answers grounded in Unity Catalog. The gateway authenticates to Databricks as a service principal (machine-to-machine), so queries run with — and are audited under — that service principal's Unity Catalog permissions.
+Expose a [Databricks Genie Agent](https://docs.databricks.com/aws/en/genie) as a governed MCP tool to AI agents through [Amazon Bedrock AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html), with the agent hosted on [AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime.html). Agents ask plain-English business questions; Genie returns lakehouse-native SQL answers grounded in Unity Catalog. The gateway authenticates to Databricks as a service principal (machine-to-machine), so queries run with — and are audited under — that service principal's Unity Catalog permissions.
 
 ![Databricks Genie via Amazon Bedrock AgentCore Gateway architecture](images/architecture.png)
 
@@ -35,10 +35,10 @@ This sample registers the [Databricks-managed Genie MCP endpoint](https://docs.d
 > the same region. Tear one down with `cleanup.py` before standing up another.
 
 1. AWS credentials configured (`aws configure`) with permissions to create AgentCore resources and IAM roles, plus **Bedrock access to a current model**. The default is the `global.anthropic.claude-sonnet-5` cross-region inference profile; override it with `MODEL_ID`. Note that current Anthropic profile ids carry no date/version suffix — `global.anthropic.claude-sonnet-5` is the whole id. Confirm what your own account can call with `aws bedrock list-inference-profiles`; Bedrock can gate an older model line on an account that has not called it recently, and that surfaces as a `ResourceNotFoundException` on your first question rather than as a model-access error.
-2. Databricks workspace on AWS with Unity Catalog enabled and at least one [Genie Space](https://docs.databricks.com/en/genie/index.html) with Trusted Assets defined
+2. Databricks workspace on AWS with Unity Catalog enabled and at least one [Genie Agent](https://docs.databricks.com/aws/en/genie) with Trusted Assets defined
 3. Databricks service principal with an [OAuth M2M secret](https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html). The service principal needs **all three** of the following — see [Service principal permissions](#service-principal-permissions) below, as a missing grant does not surface until the first real query:
-   - `CAN_RUN` on the Genie space
-   - `CAN_USE` on the SQL warehouse that backs the Genie space
+   - `CAN_RUN` on the Genie Agent
+   - `CAN_USE` on the SQL warehouse that backs the Genie Agent
    - `USE CATALOG` / `USE SCHEMA` / `SELECT` on the tables behind it
 4. Python 3.10+ (`pip install -r requirements.txt`)
 
@@ -47,9 +47,9 @@ This sample registers the [Databricks-managed Genie MCP endpoint](https://docs.d
 Grant all three before running `deploy.py`. They fail at two different stages, so watch for
 both:
 
-- **Genie space `CAN_RUN`** is needed just to read the space. Without it `deploy.py` cannot
+- **Genie Agent `CAN_RUN`** is needed just to read the agent. Without it `deploy.py` cannot
   register the target at all — the target ends in **`FAILED`** (not `READY`) with
-  `PERMISSION_DENIED: ... does not have read permission` on the space.
+  `PERMISSION_DENIED: ... does not have read permission` on the agent.
 - **Warehouse `CAN_USE`** and **UC `SELECT`** are easy to miss: `tools/list` succeeds without
   them and the target still reaches `READY`, so the integration looks healthy right up until
   the first real query fails.
@@ -59,18 +59,18 @@ principal by its **application ID** (the `DATABRICKS_CLIENT_ID` value).
 
 #### Option A — Databricks UI
 
-1. **Genie space** — open the space (**Genie** in the left nav), **Share**, add the service
+1. **Genie Agent** — open the agent (**Genie** in the sidebar), **Share**, add the service
    principal, set **Can run**, **Save**.
-2. **SQL warehouse** — the space runs on one assigned warehouse (space → **Settings** →
-   **SQL warehouse**). Under **SQL Warehouses**, open it → **Permissions** → add the service
+2. **SQL warehouse** — the agent runs on one assigned warehouse (**Configure** → **Settings**
+   → **SQL warehouse**). Under **SQL Warehouses**, open it → **Permissions** → add the service
    principal with **Can use**.
 3. **Unity Catalog objects** — in **Catalog**, open the catalog → **Permissions** → **Grant**
-   `USE CATALOG`; then open each schema the space reads → **Grant** `USE SCHEMA` and `SELECT`
+   `USE CATALOG`; then open each schema the agent reads → **Grant** `USE SCHEMA` and `SELECT`
    (schema-level `SELECT` covers all its tables).
 
 #### Option B — Databricks CLI
 
-Find the warehouse backing your Genie space:
+Find the warehouse backing your Genie Agent:
 
 ```bash
 databricks api get /api/2.0/genie/spaces/$GENIE_SPACE_ID   # returns warehouse_id
@@ -79,15 +79,15 @@ databricks api get /api/2.0/genie/spaces/$GENIE_SPACE_ID   # returns warehouse_i
 Then grant, replacing `$SP_APP_ID` with the service principal's **application ID**:
 
 ```bash
-# 1. Genie space
+# 1. Genie Agent
 databricks api patch /api/2.0/permissions/genie/$GENIE_SPACE_ID \
   --json '{"access_control_list":[{"service_principal_name":"'$SP_APP_ID'","permission_level":"CAN_RUN"}]}'
 
-# 2. SQL warehouse behind the space
+# 2. SQL warehouse behind the agent
 databricks api patch /api/2.0/permissions/warehouses/$WAREHOUSE_ID \
   --json '{"access_control_list":[{"service_principal_name":"'$SP_APP_ID'","permission_level":"CAN_USE"}]}'
 
-# 3. Unity Catalog objects (repeat per schema the space reads)
+# 3. Unity Catalog objects (repeat per schema the agent reads)
 databricks api patch /api/2.1/unity-catalog/permissions/catalog/$CATALOG \
   --json '{"changes":[{"principal":"'$SP_APP_ID'","add":["USE_CATALOG"]}]}'
 databricks api patch /api/2.1/unity-catalog/permissions/schema/$CATALOG.$SCHEMA \
@@ -98,7 +98,7 @@ Symptoms of each missing grant:
 
 | Missing grant | When it surfaces | Error |
 |---|---|---|
-| Genie space `CAN_RUN` | `deploy.py` — target ends in `FAILED` | `PERMISSION_DENIED: ... <sp-id> does not have read permission` on the space |
+| Genie Agent `CAN_RUN` | `deploy.py` — target ends in `FAILED` | `PERMISSION_DENIED: ... <sp-id> does not have read permission` on the agent |
 | Warehouse `CAN_USE` | first query, in the Genie message payload | `PERMISSION_DENIED: <sp-id> is not authorized to use or monitor this SQL Endpoint` |
 | UC `SELECT` / `USE SCHEMA` | first query, in the Genie message payload | `PERMISSION_DENIED: No access to '<catalog>.<schema>.<table>' … you must have SELECT on each data asset` |
 
@@ -112,13 +112,13 @@ that file if present.
 export DATABRICKS_HOST="https://dbc-xxxxxxxx-xxxx.cloud.databricks.com"
 export DATABRICKS_CLIENT_ID="<service principal application ID>"
 export DATABRICKS_CLIENT_SECRET="<OAuth M2M secret>"
-export GENIE_SPACE_ID="<Genie space ID>"   # see "Pointing at a Genie space" below
+export GENIE_SPACE_ID="<Genie Agent ID>"   # see "Pointing at a Genie Agent" below
 export AWS_REGION="us-east-1"          # optional, defaults to us-east-1
 ```
 
-### Pointing at a Genie space
+### Pointing at a Genie Agent
 
-**Find the space ID.** Prefer the API or the Configure panel over the address bar:
+**Find the Agent ID.** Prefer the API or the Configure panel over the address bar:
 
 ```bash
 # List your Genie Agents and read space_id from the response
@@ -130,10 +130,10 @@ it **Agent ID**. Use that value as `GENIE_SPACE_ID`: the UI says Agent ID, the A
 `space_id`, and the environment variable keeps its original name. The id also appears in the
 address bar, but prefer either route above: the console path has already changed once with the
 Spaces-to-Agents rename. The
-[service-principal grants](#service-principal-permissions) above are per-space — they do not
-carry over from another space.
+[service-principal grants](#service-principal-permissions) above are per-agent — they do not
+carry over from another agent.
 
-**Switching an already-deployed gateway to a different space.** The space ID is baked into the
+**Switching an already-deployed gateway to a different Agent.** The Agent ID is baked into the
 gateway target's MCP endpoint (`/api/2.0/mcp/genie/{space_id}`), so changing `GENIE_SPACE_ID`
 alone has no effect on a running gateway — the target must be re-registered. With the scripts
 here, tear down and redeploy:
@@ -222,7 +222,7 @@ Notes:
 | `genie_agent.py` | The agent entrypoint hosted on **AgentCore Runtime** (`BedrockAgentCoreApp`). Deployed with the `agentcore` CLI, not run directly. |
 | `invoke_runtime.py` | Invokes the deployed Runtime agent via `invoke_agent_runtime`. |
 | `cleanup.py` | Deletes the target, credential provider, gateway, IAM role and Cognito user pool. |
-| `generate_data.py` | Loads a tiny Unity Catalog dataset (`products`, `sales`) via the SQL Statement Execution API so a fresh Genie space can answer the sample questions. Optional. |
+| `generate_data.py` | Loads a tiny Unity Catalog dataset (`products`, `sales`) via the SQL Statement Execution API so a fresh Genie Agent can answer the sample questions. Optional. |
 | `secrets_setup.py` | Stages the Databricks OAuth M2M secret in AWS Secrets Manager and prints its ARN, so `deploy.py` can reference it (`clientSecretSource=EXTERNAL`) instead of taking the plaintext inline. Optional, production path. |
 | `test_cleanup_contract.py` | Unit tests pinning `cleanup.py`'s teardown ownership and state contract. No test framework and no new dependency beyond `requirements.txt`. |
 | `test_config_and_gateway.py` | Unit tests for the config and gateway wiring: env fail-fast, the Genie MCP URL, the credential-provider secret-ARN guard, and the IAM policy shape. No test framework and no new dependency beyond `requirements.txt`. |
@@ -279,8 +279,8 @@ python deploy.py
 ### 2. Load a sample dataset (optional)
 
 The sample's questions (e.g. *"What were our top 5 products by revenue last quarter?"*)
-only return answers if the Genie space is backed by data. If you don't already have a
-populated space, `generate_data.py` creates a tiny Unity Catalog dataset — one catalog,
+only return answers if the Genie Agent is backed by data. If you don't already have a
+populated agent, `generate_data.py` creates a tiny Unity Catalog dataset — one catalog,
 one schema, two small tables (`products` and `sales`, ~1,400 rows spanning ~18
 months) — enough to answer the questions this sample ships with:
 
@@ -316,16 +316,14 @@ It runs over the [SQL Statement Execution API](https://docs.databricks.com/en/de
 `seed_state.json`) and prompts first. It is also the teardown for the sample data —
 `cleanup.py` removes only AWS resources, not these Unity Catalog objects.
 
-Then add the two tables to your Genie space as data assets — this is a manual step in the
+Then add the two tables to your Genie Agent as data assets — this is a manual step in the
 Databricks UI:
 
-1. Open your space (**Genie** in the left nav) → **Settings** (or the **Data** / **+ Add**
-   panel, depending on your workspace version).
-2. Add `<catalog>.<schema>.products` and `<catalog>.<schema>.sales` as data assets (with the
+1. Open your agent (**Genie** in the sidebar) → **Configure** → **Data**.
+2. Click **Add** and add `<catalog>.<schema>.products` and `<catalog>.<schema>.sales` (with the
    defaults above, `genie_demo.sales.products` and `genie_demo.sales.sales`).
-3. **Save** the space.
 
-Then confirm the SP has the space / warehouse / Unity Catalog grants from
+Then confirm the SP has the agent / warehouse / Unity Catalog grants from
 [Service principal permissions](#service-principal-permissions).
 
 > **"You don't have SELECT access" warning when adding a table — safe to ignore.** When
@@ -368,7 +366,7 @@ streamable-HTTP, hands the discovered tools to a Strands `Agent`, and asks your
 question. Run this before deploying — it isolates auth and grant problems from
 deployment problems.
 
-> **First question is slow.** If the SQL warehouse behind your Genie space is stopped,
+> **First question is slow.** If the SQL warehouse behind your Genie Agent is stopped,
 > the first query cold-starts it and can take a couple of minutes. That is the warehouse
 > starting, not a broken integration.
 
