@@ -225,7 +225,7 @@ box(1052, 112, 630, 620, "Databricks workspace on AWS", BOX_DBX_BG, BOX_DBX_EDGE
 
 node(1367, 232, "connectors", "Managed MCP server", "/api/2.0/mcp/genie/{space_id}", size=56)
 node(1367, 402, "chat", "Genie Agent", "Trusted Assets", size=56)
-node(1204, 600, "unity-catalog", "Unity Catalog", "permissions + lineage", size=56)
+node(1204, 600, "unity-catalog", "Unity Catalog", "permissions + audit", size=56)
 node(1532, 600, "delta-table", "Delta tables", "governed data", size=56)
 
 # ---------------------------------------------------------------- flows
