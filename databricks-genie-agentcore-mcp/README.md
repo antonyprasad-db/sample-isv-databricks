@@ -15,7 +15,7 @@ reads the committed `icons_b64.json` icon cache), then regenerate the PNG
 
 ## Overview
 
-This sample registers the [Databricks-managed Genie MCP endpoint](https://docs.databricks.com/en/generative-ai/mcp/managed-mcp.html) (`/api/2.0/mcp/genie/{space_id}`) as a target in Amazon Bedrock AgentCore Gateway. Once registered, any agent authorized to the gateway can call Genie as a tool — no custom NL-to-SQL chain, no data copy into Knowledge Bases, no parallel metric definitions. The gateway manages:
+This sample registers the [Databricks-managed Genie MCP endpoint](https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp) (`/api/2.0/mcp/genie/{space_id}`) as a target in Amazon Bedrock AgentCore Gateway. Once registered, any agent authorized to the gateway can call Genie as a tool — no custom NL-to-SQL chain, no data copy into Knowledge Bases, no parallel metric definitions. The gateway manages:
 
 - **Inbound auth** — AgentCore Identity (fronted by Amazon Cognito in this sample) authorizes agent → tool calls
 - **Outbound auth** — Databricks OAuth2 M2M credentials, registered via `CreateOauth2CredentialProvider` (scoped to `genie`) and retrieved by Gateway at tool-invocation time
@@ -34,9 +34,9 @@ This sample registers the [Databricks-managed Genie MCP endpoint](https://docs.d
 > an adopted role belonging to another region; it cannot detect a concurrent deployment in
 > the same region. Tear one down with `cleanup.py` before standing up another.
 
-1. AWS credentials configured (`aws configure`) with permissions to create AgentCore resources and IAM roles, plus **Bedrock access to a current model**. The default is the `global.anthropic.claude-sonnet-5` cross-region inference profile; override it with `MODEL_ID`. Note that current Anthropic profile ids carry no date/version suffix — `global.anthropic.claude-sonnet-5` is the whole id. Confirm what your own account can call with `aws bedrock list-inference-profiles`; Bedrock can gate an older model line on an account that has not called it recently, and that surfaces as a `ResourceNotFoundException` on your first question rather than as a model-access error.
+1. AWS credentials configured (`aws configure`) with permissions to create AgentCore resources and IAM roles, plus **Bedrock access to a current model**. Step 4 pins the container deployment path, which builds through CodeBuild, so the same principal also needs ECR, CodeBuild and S3 permissions covering the repository, build project and source bucket the toolkit auto-creates. The default is the `global.anthropic.claude-sonnet-5` cross-region inference profile; override it with `MODEL_ID`. Note that current Anthropic profile ids carry no date/version suffix — `global.anthropic.claude-sonnet-5` is the whole id. Confirm what your own account can call with `aws bedrock list-inference-profiles`; Bedrock can gate an older model line on an account that has not called it recently, and that surfaces as a `ResourceNotFoundException` on your first question rather than as a model-access error.
 2. Databricks workspace on AWS with Unity Catalog enabled and at least one [Genie Agent](https://docs.databricks.com/aws/en/genie) with Trusted Assets defined
-3. Databricks service principal with an [OAuth M2M secret](https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html). The service principal needs **all three** of the following — see [Service principal permissions](#service-principal-permissions) below, as a missing grant does not surface until the first real query:
+3. Databricks service principal with an [OAuth M2M secret](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m). The service principal needs **all three** of the following — see [Service principal permissions](#service-principal-permissions) below, as a missing grant does not surface until the first real query:
    - `CAN_RUN` on the Genie Agent
    - `CAN_USE` on the SQL warehouse that backs the Genie Agent
    - `USE CATALOG` / `USE SCHEMA` / `SELECT` on the tables behind it
@@ -140,8 +140,8 @@ here, tear down and redeploy:
 
 ```bash
 python cleanup.py                     # remove the old target (and gateway stack)
-export GENIE_SPACE_ID="<new space ID>"
-python deploy.py                      # register a target for the new space
+export GENIE_SPACE_ID="<new Agent ID>"
+python deploy.py                      # register a target for the new Agent
 ```
 
 ### Reference the secret from Secrets Manager (production)
@@ -290,7 +290,7 @@ python generate_data.py --drop          # drop what this script created, then re
 python generate_data.py --drop --yes    # ... skipping the confirmation prompt
 ```
 
-It runs over the [SQL Statement Execution API](https://docs.databricks.com/en/dev-tools/sql-execution-tutorial.html)
+It runs over the [SQL Statement Execution API](https://docs.databricks.com/aws/en/dev-tools/sql-execution-tutorial)
 (no extra dependencies, no PAT) and auto-resolves the SQL warehouse behind `GENIE_SPACE_ID`
 (or set `DATABRICKS_WAREHOUSE_ID`). The target catalog/schema default to `genie_demo` /
 `sales` (override with `DATABRICKS_CATALOG` / `DATABRICKS_SCHEMA`).
@@ -391,7 +391,20 @@ deployment problems.
 ```bash
 agentcore configure --entrypoint genie_agent.py --non-interactive \
   --deployment-type container --region <your-region>
-agentcore deploy
+
+# Move the Cognito secret out of the build context, then pass its values as Runtime
+# environment variables. Both halves matter, and the --env flags must be repeated on
+# every deploy. See the note below.
+CFG="$(mktemp -d)/gateway_config.json"
+mv gateway_config.json "$CFG"
+agentcore deploy $(jq -r '
+  "--env GATEWAY_URL=" + .gateway_url,
+  "--env COGNITO_TOKEN_ENDPOINT=" + .client_info.token_endpoint,
+  "--env COGNITO_CLIENT_ID=" + .client_info.client_id,
+  "--env COGNITO_CLIENT_SECRET=" + .client_info.client_secret,
+  "--env COGNITO_SCOPE=" + .client_info.scope' "$CFG")
+mv "$CFG" gateway_config.json
+
 python invoke_runtime.py
 ```
 
@@ -400,25 +413,35 @@ Cognito token and the MCP session are established per invocation rather than onc
 start: client-credentials tokens expire while a warm container does not, so a cold-start
 token left every request after expiry failing with a 401.
 
-> **Pass configuration as environment variables, not as a file.** `gateway_config.json` is
-> gitignored and holds the Cognito client secret, and the toolkit does not exclude it from the
-> build on **either** deployment path: both filter on the same `dockerignore.template`, which
-> excludes `.env` and `.bedrock_agentcore.yaml` but never this file. So on `container` the secret
-> lands in an image layer, and on `direct_code_deploy` it lands in the `code.zip` uploaded to S3.
-> Pass the five values explicitly instead, reading them from `gateway_config.json` on your
-> machine: `agentcore deploy --env GATEWAY_URL=... --env COGNITO_TOKEN_ENDPOINT=... --env
-> COGNITO_CLIENT_ID=... --env COGNITO_CLIENT_SECRET=... --env COGNITO_SCOPE=...`. That keeps the
-> deployed agent off the file, but it does not remove the file from the artifact. To do that, move
-> `gateway_config.json` aside for the build and **put it back afterwards**: it is the record
-> `cleanup.py` tears down from, and cleanup cannot remove what it cannot read. For anything beyond
-> a sample, hold the secret in Secrets Manager and grant the Runtime role read access rather than
-> passing it inline.
+> **Keep the secret out of the build, and repeat `--env` on every deploy.** `gateway_config.json`
+> holds the Cognito client secret, and the toolkit excludes it from neither deployment path: both
+> filter on the same `dockerignore.template`, which drops `.env` and `.bedrock_agentcore.yaml` but
+> never this file. So on `container` the secret lands in an image layer, and on
+> `direct_code_deploy` in the `code.zip` uploaded to S3.
+>
+> Moving it aside has to mean **outside the package directory**. This sample's `.gitignore` uses
+> the glob `gateway_config.json*`, so renaming it to `gateway_config.json.bak` in place still
+> looks ignored and still ships, because `dockerignore.template` has no `gateway_config*` entry
+> at all. Move it back afterwards: it is the record `cleanup.py` tears down from, and cleanup
+> cannot remove what it cannot read.
+>
+> The five variable names are not keys in that file, which is why the block uses `jq`.
+> `gateway_url` is top level; `client_id`, `client_secret`, `token_endpoint` and `scope` sit
+> under `client_info`.
+>
+> **`--env` does not persist.** `UpdateAgentRuntime` replaces the whole environment map, and the
+> toolkit sends `environmentVariables` on every deploy, coercing an absent `--env` to `{}`. A
+> later bare `agentcore deploy` therefore drops all five silently: `_load_config` finds no
+> `GATEWAY_URL`, falls through to the state file you just moved aside, and every invocation fails
+> with `No configuration found`. Repeat the flags each time, or for anything beyond a sample hold
+> the values in Secrets Manager and grant the Runtime role read access.
 > `genie_agent.py` prefers these variables and falls back to the state file for local runs.
 
 > **Pass all three flags.** Measured on starter toolkit 0.3.13. Without `--non-interactive`,
 > `configure` prompts in order for the agent name, the dependency file, the deployment type, the
-> execution role, and then the ECR repository on `container` or the S3 bucket on
-> `direct_code_deploy`. With no terminal on stdin the first prompt raises `EOFError` inside
+> execution role, then the ECR repository on `container` or the S3 bucket on
+> `direct_code_deploy`, and finally the OAuth authorizer, the request-header allowlist and the
+> memory configuration. With no terminal on stdin the first prompt raises `EOFError` inside
 > `prompt_toolkit`, Click catches it and exits `Aborted!`, so what you actually see is
 > `Warning: Input is not a terminal (fd=0).` followed by `Aborted!` with no traceback, and no
 > `.bedrock_agentcore.yaml` for `agentcore deploy` to read. Piping the answers in instead of
@@ -433,8 +456,8 @@ token left every request after expiry failing with a 401.
 > everywhere: `--deployment-type direct_code_deploy` exits with
 > `Error: Direct Code Deploy deployment unavailable (...)` when `uv` or `zip` is absent. Two
 > consequences worth knowing. `container` builds through AWS CodeBuild, which creates an S3
-> source bucket, a CodeBuild project and execution role, and an ECR repository, so the principal
-> running this needs more than the AgentCore and IAM permissions in the prerequisites. And if you
+> source bucket, a CodeBuild project and execution role, and an ECR repository, which is why
+> prerequisite 1 names ECR, CodeBuild and S3 alongside AgentCore and IAM. And if you
 > configured this agent from an earlier version of these steps, `configure` refuses to change
 > deployment type in place: run `agentcore destroy --agent genie_agent` first, or configure under
 > a new `--name`. `direct_code_deploy` is otherwise expected to work, since `invoke_runtime.py`
@@ -459,9 +482,13 @@ workspace, since grants and policies differ between workspaces.
 ### 6. Clean up
 
 ```bash
-agentcore destroy      # remove the deployed Runtime agent
-python cleanup.py      # remove the target, credential provider, gateway, IAM role and Cognito pool
+agentcore destroy --delete-ecr-repo   # the Runtime agent, its ECR images and the repository
+python cleanup.py                     # target, credential provider, gateway, IAM role, Cognito pool
 ```
+
+Without `--delete-ecr-repo`, `destroy` removes the images but leaves the repository behind. It
+also deletes only the `source.zip` and `deployment.zip` objects from the CodeBuild source bucket,
+never the bucket itself, so remove that one by hand if you are tearing the account back down.
 
 ## Tests
 
@@ -489,9 +516,9 @@ python -m unittest test_config_and_gateway -v
 
 ## Resources
 
-- [Databricks Genie](https://docs.databricks.com/en/genie/index.html)
-- [Databricks managed MCP servers](https://docs.databricks.com/en/generative-ai/mcp/managed-mcp.html)
-- [Databricks OAuth M2M authentication](https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html)
+- [Databricks Genie Agents](https://docs.databricks.com/aws/en/genie)
+- [Databricks managed MCP servers](https://docs.databricks.com/aws/en/agents/mcp-tools/managed-mcp)
+- [Databricks OAuth M2M authentication](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m)
 - [Amazon Bedrock AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
 - [Amazon Bedrock AgentCore Identity](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/identity.html)
 - [Amazon Bedrock AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime.html)
