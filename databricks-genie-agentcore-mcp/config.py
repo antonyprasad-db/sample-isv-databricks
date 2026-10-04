@@ -165,5 +165,5 @@ def require_databricks_config() -> None:
 
 
 def genie_mcp_url() -> str:
-    """Databricks-managed Genie MCP endpoint for the configured space."""
+    """Databricks-managed Genie MCP endpoint for the configured Agent."""
     return f"{DATABRICKS_HOST}/api/2.0/mcp/genie/{GENIE_SPACE_ID}"

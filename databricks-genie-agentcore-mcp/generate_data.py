@@ -141,7 +141,7 @@ def mint_token(client_id: str, client_secret: str) -> str:
 
 
 def resolve_warehouse(headers: dict) -> str:
-    """Use DATABRICKS_WAREHOUSE_ID if set, else the warehouse behind the space."""
+    """Use DATABRICKS_WAREHOUSE_ID if set, else the warehouse behind the Agent."""
     if DATABRICKS_WAREHOUSE_ID:
         return DATABRICKS_WAREHOUSE_ID
     resp = _request(
@@ -498,7 +498,7 @@ def main() -> None:
 
     print(
         f"\nDone. Now add {fq}.products and {fq}.sales to your Genie Agent "
-        "(Genie UI -> the space -> data assets), then run:\n"
+        "(Genie -> Configure -> Data -> Add), then run:\n"
         '  python invoke.py "What were our top 5 products by revenue last quarter?"'
     )
 
