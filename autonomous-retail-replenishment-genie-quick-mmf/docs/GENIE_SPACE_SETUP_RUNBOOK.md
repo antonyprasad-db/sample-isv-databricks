@@ -24,8 +24,8 @@ corner. Choose the six objects listed in STEP 2 as the data sources and click **
 | Name | `Fresh Retail Sales Forecasting` |
 | Warehouse | `supply-chain-genie` (your serverless warehouse) |
 
-Save, then record the id as `<GENIE_SPACE_ID>` in `.supply-chain-automation-env`: `cleanup/cleanup.sh`
-reads it, and the connector runbook needs it for the MCP endpoint. If you created the Agent with
+Save. Then find the Agent's id, as below, and record it as `GENIE_SPACE_ID` in
+`.supply-chain-automation-env`: `cleanup/cleanup.sh` reads it, and the connector runbook needs it for the MCP endpoint. If you created the Agent with
 `scripts/setup_databricks.sh` instead, the id is already saved in `scripts/.env.generated`, which is
 loaded after your env file and takes precedence.
 
@@ -75,8 +75,10 @@ lines above the `---` are notes for you, not instructions for Genie.
 
 ## STEP 4 — Add the surge example query
 **Configure → Examples** → **Add** an example query. Enter the question *"Which SKUs have a demand
-surge?"* and paste `genie/genie_surge_trusted_query.sql` as its SQL. This shows Genie the SQL to use
-for the surge question, which is what the unattended Flow asks. Per the
+surge?"* and, as its SQL, paste `genie/genie_surge_trusted_query.sql` from its `WITH` line down; the
+comment lines above it are notes for you. This shows Genie the SQL to use for surge questions. The
+unattended Flow asks with its own longer prompt (`flow/flow_definition.json`), not this exact
+question. Per the
 [Databricks docs](https://docs.databricks.com/aws/en/genie-agents/tune-quality), only a *parameterized* example query is a
 trusted asset that returns a verified answer, and this one has no parameters, so check the surge
 answer in STEP 5 rather than assuming Genie reuses the SQL verbatim on every run.
@@ -84,6 +86,8 @@ answer in STEP 5 rather than assuming Genie reuses the SQL verbatim on every run
 ## STEP 5 — Validate the Agent directly (before wiring Quick)
 In the Genie Agent chat:
 - *"How many SKUs do we have?"* → **1,000**
+- *"Which SKUs have a demand surge?"* → **6** surging SKUs, the set the Flow should act on (see
+  `flow/flow_build_guide.md`)
 - *"Which products are surging in the Northeast?"* → returns the surging SKUs with
   `unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, surge_ratio`
 - *"Is Skim Milk demand spiking in the Northeast?"* → surge answer, ratio ~1.69, ~50 units/7d

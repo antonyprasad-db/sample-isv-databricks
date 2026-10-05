@@ -1,6 +1,6 @@
 -- Genie example query for the "Which SKUs have a demand surge?" question.
 -- Add this in the Genie Agent under Configure -> Examples, paired with the sample question
--- "Which SKUs have a demand surge?", so Genie uses this SQL instead of generating its own.
+-- "Which SKUs have a demand surge?", to steer Genie toward this SQL instead of its own.
 -- It has no parameters, so per the Databricks docs it is an example query, not a trusted asset
 -- with a verified answer: validate the surge answer (runbook STEP 5) before relying on the Flow.
 --

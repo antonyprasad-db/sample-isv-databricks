@@ -6,8 +6,8 @@
 #
 # Never commit the filled-in copy. Values discovered by the scripts are written
 # to scripts/.env.generated (gitignored) and reloaded automatically, so they are
-# deliberately absent from this template. The one exception is the Genie Agent block
-# below, which is only for creating the Agent by hand in the console.
+# deliberately absent from this template. The Genie Agent block below holds ids you
+# collect by hand only if you create the Agent in the console.
 
 # ---- AWS -------------------------------------------------------------------
 export AWS_PROFILE_SC=""          # your AWS CLI profile

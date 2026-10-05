@@ -59,7 +59,7 @@ notebooks/        AWS-authored Databricks notebooks: 04 Genie views, 03 product/
   run_notebook.sh parameterized Databricks job runner (submit → poll → report; handles nb04 MODEL_FILTER)
 supplier-feed/    load_supplier_availability.py — independent S3 Tables loader (PyIceberg)
 order-api/        CloudFormation + OpenAPI spec for the mock external Supplier Order API
-genie/            Genie Agent instructions + the pinned surge trusted query + deterministic surge SQL
+genie/            Genie Agent instructions, the surge example query, and the scripted Agent definition
 flow/             flow_definition.json (create-flow input) + flow_build_guide.md (step-by-step build)
 docs/             setup runbooks (Quick account, Genie Agent, Quick connector, S3 Tables, order/ticket action, end-to-end test) + cost/cleanup
 cleanup/          cleanup.sh — tears down all AWS + Databricks resources created by the walkthrough
@@ -115,8 +115,8 @@ as console-only; substitute your `<PLACEHOLDER>` values throughout.
    Databricks job runner).
    Notebook 04 scopes the Genie views to Chronos-2 (`MODEL_FILTER="Chronos2"`) for this walkthrough; set
    `MODEL_FILTER=None` to expose all models MMF ran and enable model-comparison questions.
-4. **Genie Agent** — create the agent, add its six tables, paste `genie/genie_instructions.md`, and pin
-   `genie/genie_surge_trusted_query.sql` as a trusted query. See **`docs/GENIE_SPACE_SETUP_RUNBOOK.md`**.
+4. **Genie Agent** — create the agent, add its six tables, paste `genie/genie_instructions.md` from
+   below its `---`, and add `genie/genie_surge_trusted_query.sql` as an example query. See **`docs/GENIE_SPACE_SETUP_RUNBOOK.md`**.
 5. **Order API** — deploy `order-api/supplier-order-api.yaml` (CloudFormation; the deploy command with
    `CAPABILITY_NAMED_IAM` is in `docs/QUICK_ACTION_TICKET_RUNBOOK.md` STEP 0). Capture the `ApiBaseUrl`
    stack output for the OpenAPI connector.
