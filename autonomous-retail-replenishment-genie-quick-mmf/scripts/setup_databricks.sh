@@ -98,7 +98,7 @@ create_genie() {
 
   SPACE_ID="$(databricks genie create-space --json "@${BODY}" --profile "$DBX_PROFILE" \
     --output json | jq -r '.space_id')"
-  echo "Created Genie space_id: ${SPACE_ID}"
+  echo "Created Genie Agent, space_id: ${SPACE_ID}"
   save_var GENIE_SPACE_ID "$SPACE_ID"     # persisted for the Quick MCP connector step
   save_var WAREHOUSE_ID "$WAREHOUSE_ID"
   databricks genie get-space "$SPACE_ID" --profile "$DBX_PROFILE" \

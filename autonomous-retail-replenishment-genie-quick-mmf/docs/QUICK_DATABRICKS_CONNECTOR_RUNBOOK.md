@@ -1,14 +1,14 @@
 # Amazon Quick → Databricks Genie (MCP Connector) — Setup Runbook
 
-Connects Amazon Quick to your Databricks Genie Space over MCP (OAuth/3LO), so Quick can ask the
+Connects Amazon Quick to your Databricks Genie Agent over MCP (OAuth/3LO), so Quick can ask the
 space natural-language questions and get surge results back. **Console-only** — there is no API/CLI
 for Quick connectors. Prerequisites: an Amazon Quick account provisioned in `<REGION>`
-(`QUICK_ACCOUNT_SETUP_RUNBOOK.md`) and the Genie Space already created (`GENIE_SPACE_SETUP_RUNBOOK.md`).
+(`QUICK_ACCOUNT_SETUP_RUNBOOK.md`) and the Genie Agent already created (`GENIE_SPACE_SETUP_RUNBOOK.md`).
 
 ## Environment facts (fill in with your own values — see the placeholder table in README.md)
 - Databricks workspace host: `<WORKSPACE_HOST>` (e.g. `dbc-xxxx.cloud.databricks.com`)
 - Databricks account console: `accounts.cloud.databricks.com` (your account `<DATABRICKS_ACCOUNT_ID>`)
-- Genie space: **Fresh Retail Sales Forecasting**, space_id `<GENIE_SPACE_ID>`
+- Genie Agent: **Fresh Retail Sales Forecasting**, space_id `<GENIE_SPACE_ID>`
 - SQL warehouse: `supply-chain-genie` (`<WAREHOUSE_ID>`, Serverless) — attached to the space
 - AWS account / region: `<ACCOUNT_ID>` / `<REGION>` (Amazon Quick must be in `<REGION>`)
 
@@ -35,7 +35,7 @@ into Quick in Step C2.
 ## STEP B — Databricks grants for the querying user
 Genie runs with a U2M (user-to-machine) OAuth flow, so **queries run as the Databricks user who
 logs in** from Quick. That user needs:
-- **CAN VIEW** on the Genie space
+- **CAN VIEW** on the Genie Agent
 - **CAN USE** on the SQL warehouse `supply-chain-genie`
 - **SELECT** on the catalog/schema `mmf.fresh_retail_net` (the six space tables/views)
 

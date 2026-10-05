@@ -1,6 +1,6 @@
-# Genie Space Instructions — "Fresh Retail Sales Forecasting"
+# Genie Agent Instructions — "Fresh Retail Sales Forecasting"
 
-Paste this into the Genie space's **Instructions** field. It defines the semantic model (SKU
+Paste this into the Genie Agent's **Instructions** field. It defines the semantic model (SKU
 definition, columns, name resolution) AND a strict **surge output contract** so the demand-surge
 query is deterministic — the part that makes the unattended Quick Flow reliable.
 

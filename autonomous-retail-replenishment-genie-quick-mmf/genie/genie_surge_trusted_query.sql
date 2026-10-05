@@ -1,5 +1,5 @@
 -- Genie TRUSTED / example query for the "Which SKUs have a demand surge?" question.
--- Pin this in the Genie space (SQL Vault / example queries) paired with the sample question
+-- Pin this in the Genie Agent (SQL Vault / example queries) paired with the sample question
 -- "Which SKUs have a demand surge?" so Genie reuses it verbatim instead of regenerating SQL.
 -- This is what makes the unattended/scheduled Flow run DETERMINISTIC (no per-run drift).
 --

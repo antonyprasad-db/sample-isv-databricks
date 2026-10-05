@@ -59,9 +59,9 @@ notebooks/        AWS-authored Databricks notebooks: 04 Genie views, 03 product/
   run_notebook.sh parameterized Databricks job runner (submit → poll → report; handles nb04 MODEL_FILTER)
 supplier-feed/    load_supplier_availability.py — independent S3 Tables loader (PyIceberg)
 order-api/        CloudFormation + OpenAPI spec for the mock external Supplier Order API
-genie/            Genie space instructions + the pinned surge trusted query + deterministic surge SQL
+genie/            Genie Agent instructions + the pinned surge trusted query + deterministic surge SQL
 flow/             flow_definition.json (create-flow input) + flow_build_guide.md (step-by-step build)
-docs/             setup runbooks (Quick account, Genie space, Quick connector, S3 Tables, order/ticket action, end-to-end test) + cost/cleanup
+docs/             setup runbooks (Quick account, Genie Agent, Quick connector, S3 Tables, order/ticket action, end-to-end test) + cost/cleanup
 cleanup/          cleanup.sh — tears down all AWS + Databricks resources created by the walkthrough
 smoketest/        local_logic_smoketest.py — offline DETECT→DECIDE logic check (no live infra)
 ```
@@ -167,7 +167,7 @@ Find them all with: `grep -rn "<[A-Z_]*>" .`
 | `<REGION>` | the single AWS region for the whole solution (must support S3 Tables + Quick; e.g. `us-west-2`) | you choose it once |
 | `<WORKSPACE_HOST>` | Databricks workspace host (`dbc-xxxx.cloud.databricks.com`) | workspace URL |
 | `<DATABRICKS_ACCOUNT_ID>` | Databricks account id | account console |
-| `<GENIE_SPACE_ID>` | Genie space id | space URL after you create it |
+| `<GENIE_SPACE_ID>` | Genie Agent id | see `docs/GENIE_SPACE_SETUP_RUNBOOK.md` |
 | `<WAREHOUSE_ID>` | Serverless SQL warehouse id | SQL Warehouses list |
 | `<GENIE_MCP_CONNECTOR_ID>` / `<OPENAPI_ACTION_CONNECTOR_ID>` | Quick action-connector ids | `aws quicksight list-action-connectors` |
 | `<OPENAPI_SUBMIT_ORDER_ACTION_ID>` / `<OPENAPI_CREATE_TICKET_ACTION_ID>` | OpenAPI action ids | connector Test action, or `describe-action-connector` |

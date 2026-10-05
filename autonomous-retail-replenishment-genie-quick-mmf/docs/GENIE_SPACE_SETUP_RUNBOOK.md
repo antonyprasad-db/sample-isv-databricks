@@ -1,6 +1,6 @@
-# Databricks Genie Space — Creation Runbook
+# Databricks Genie Agent — Creation Runbook
 
-Creates the **Fresh Retail Sales Forecasting** Genie Space that Amazon Quick queries over MCP.
+Creates the **Fresh Retail Sales Forecasting** Genie Agent that Amazon Quick queries over MCP.
 Do this AFTER the upstream MMF forecast notebooks (`01 → 02`) and this repo's notebooks (`04 → 03`)
 have run (the space's tables/views must exist).
 Console steps are in the Databricks workspace UI.
@@ -14,19 +14,27 @@ Console steps are in the Databricks workspace UI.
   warehouse. Note its **warehouse id** (`<WAREHOUSE_ID>`) — you'll need it for the connector.
 - **CAN USE** on that warehouse and **SELECT** on `mmf.fresh_retail_net`.
 
-## STEP 1 — Create the space
-Databricks workspace → **Genie** (left nav) → **New** → **New Genie space**.
+## STEP 1 — Create the Agent
+In the Databricks workspace, open **Genie** from the sidebar and create a new Genie Agent.
+
 | Field | Value |
 |---|---|
-| Space name | `Fresh Retail Sales Forecasting` |
+| Agent name | `Fresh Retail Sales Forecasting` |
 | SQL warehouse | `supply-chain-genie` (your serverless warehouse) |
 | Default catalog / schema | `mmf` / `fresh_retail_net` |
 
-Save. The space's **space_id** appears in its URL (`.../genie/rooms/<GENIE_SPACE_ID>/...`) — record it
-as `<GENIE_SPACE_ID>` for the Quick connector.
+Save, then record the id as `<GENIE_SPACE_ID>` for the Quick connector. The console path changed with
+the Spaces-to-Agents rename, so take the id from the API or from the Agent's **Configure → About**
+panel, where the UI labels it **Agent ID**, rather than from the address bar:
+
+```bash
+databricks api get /api/2.0/genie/spaces | jq '.spaces[] | {space_id, title}'
+```
+
+The UI says Agent ID, the API returns `space_id`, and `<GENIE_SPACE_ID>` keeps its original name.
 
 ## STEP 2 — Add the six tables/views
-In the space → **Data** (or **Add tables**), add exactly these **6** objects from `mmf.fresh_retail_net`:
+In the Agent, go to **Configure → Data → Add** and add exactly these **6** objects from `mmf.fresh_retail_net`:
 
 | # | Object | Created by | Purpose |
 |---|---|---|---|
@@ -49,7 +57,7 @@ Mark it **trusted**. This is what makes unattended surge detection reproducible:
 exact SQL instead of generating (and drifting) its own each run.
 
 ## STEP 5 — Validate the space directly (before wiring Quick)
-In the Genie space chat:
+In the Genie Agent chat:
 - *"How many SKUs do we have?"* → **1,000**
 - *"Which products are surging in the Northeast?"* → returns the surging SKUs with
   `unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, surge_ratio`
