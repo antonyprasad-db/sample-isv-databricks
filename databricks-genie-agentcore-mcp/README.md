@@ -54,10 +54,11 @@ figure.</sub>
 
 1. AWS credentials configured (`aws configure`) with permissions to create AgentCore resources and IAM roles, plus **Bedrock access to a current model**. The default is the `global.anthropic.claude-sonnet-5` cross-region inference profile; override it with `MODEL_ID`. Note that current Anthropic profile ids carry no date/version suffix — `global.anthropic.claude-sonnet-5` is the whole id. Confirm what your own account can call with `aws bedrock list-inference-profiles`; Bedrock can gate an older model line on an account that has not called it recently, and that surfaces as a `ResourceNotFoundException` on your first question rather than as a model-access error.
 2. Databricks workspace on AWS with Unity Catalog enabled and at least one [Genie Agent](https://docs.databricks.com/aws/en/genie-agents) with Trusted Assets defined
-3. Databricks service principal with an [OAuth M2M secret](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m). The service principal needs **all three** of the following — see [Service principal permissions](#service-principal-permissions) below, as a missing grant does not surface until the first real query:
+3. Databricks service principal with an [OAuth M2M secret](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-m2m). The service principal needs **both** of the following — see [Service principal permissions](#service-principal-permissions) below, as a missing grant does not surface until the first real query:
    - `CAN_RUN` on the Genie Agent
-   - `CAN_USE` on the SQL warehouse that backs the Genie Agent
    - `USE CATALOG` / `USE SCHEMA` / `SELECT` on the tables behind it
+
+   It does not need `CAN_USE` on the SQL warehouse; the same section explains why.
 4. Python 3.10+ (`pip install -r requirements.txt`), and `jq`, used by the optional id
    lookup under Configuration
 5. Step 4 of the walkthrough pins the container deployment path, which builds through CodeBuild,
@@ -67,19 +68,22 @@ figure.</sub>
 
 ### Service principal permissions
 
-Grant all three before running `deploy.py`. They fail at two different stages, so watch for
+Grant both before running `deploy.py`. They fail at two different stages, so watch for
 both:
 
 - **Genie Agent `CAN_RUN`** is needed just to read the agent. Without it `deploy.py` cannot
   register the target at all — the target ends in **`FAILED`** (not `READY`) with
   `PERMISSION_DENIED: ... does not have read permission` on the agent.
-- **Warehouse `CAN_USE`** and **UC `SELECT`** are easy to miss: `tools/list` succeeds without
-  them and the target still reaches `READY`, so the integration looks healthy right up until
-  the first real query fails. The
-  [set-up docs](https://docs.databricks.com/aws/en/genie-agents/set-up) say Genie runs queries on
-  compute credentials embedded by the author, so chat users need no warehouse permission; grant
-  `CAN_USE` to the service principal anyway, because the symptom table below records the error it
-  hit without one.
+- **UC `SELECT`** is easy to miss: `tools/list` succeeds without it and the target still reaches
+  `READY`, so the integration looks healthy right up until the first real query fails.
+- **Warehouse `CAN_USE` is not needed.** Re-tested on 5 October 2026 against the managed Genie MCP
+  endpoint, as a service principal with a token scoped `genie`: with no grant, with it granted, and
+  with it revoked again, every query returned an answer, and query history attributed each
+  statement to the service principal. Per the
+  [set-up docs](https://docs.databricks.com/aws/en/genie-agents/set-up), Genie runs queries on
+  compute credentials embedded by whoever last saved the agent's warehouse, so warehouse access
+  now depends on that author rather than on the service principal. Leave the grant off for least
+  privilege.
 
 You can grant these two ways — the Databricks UI or the CLI. The CLI identifies the service
 principal by its **application ID** (the `DATABRICKS_CLIENT_ID` value). The UI shows it by display
@@ -93,9 +97,10 @@ workspace admin settings or with `databricks service-principals list`.
    the dropdown beside it, and click **Add**. To confirm the grant went to the right principal,
    `databricks api get /api/2.0/permissions/genie/$GENIE_SPACE_ID` should list its application ID
    as `service_principal_name`.
-2. **SQL warehouse** — the agent runs its SQL on the warehouse listed in **Configure** →
-   **About**, under **About this agent**. Under **SQL Warehouses**, open it → **Permissions** →
-   add the service principal with **Can use**. (The set-up docs place the warehouse under
+2. **SQL warehouse (optional, not needed; see above)** — the agent runs its SQL on the
+   warehouse listed in **Configure** → **About**, under **About this agent**. To grant it anyway,
+   under **SQL Warehouses**, open it → **Permissions** → add the service principal with
+   **Can use**. (The set-up docs place the warehouse under
    **Configure** → **Settings**, a tab the live UI does not show.)
 3. **Unity Catalog objects** — in **Catalog**, open the catalog → **Permissions** → **Grant**
    `USE CATALOG`; then open each schema the agent reads → **Grant** `USE SCHEMA` and `SELECT`
@@ -103,7 +108,7 @@ workspace admin settings or with `databricks service-principals list`.
 
 #### Option B — Databricks CLI
 
-Find the warehouse backing your Genie Agent:
+Optionally, find the warehouse backing your Genie Agent (only needed for the optional grant 2):
 
 ```bash
 databricks api get /api/2.0/genie/spaces/$GENIE_SPACE_ID   # returns warehouse_id
@@ -116,7 +121,7 @@ Then grant, replacing `$SP_APP_ID` with the service principal's **application ID
 databricks api patch /api/2.0/permissions/genie/$GENIE_SPACE_ID \
   --json '{"access_control_list":[{"service_principal_name":"'$SP_APP_ID'","permission_level":"CAN_RUN"}]}'
 
-# 2. SQL warehouse behind the agent
+# 2. SQL warehouse behind the agent (optional, not needed; see above)
 databricks api patch /api/2.0/permissions/warehouses/$WAREHOUSE_ID \
   --json '{"access_control_list":[{"service_principal_name":"'$SP_APP_ID'","permission_level":"CAN_USE"}]}'
 
@@ -132,7 +137,7 @@ Symptoms of each missing grant:
 | Missing grant | When it surfaces | Error |
 |---|---|---|
 | Genie Agent `CAN_RUN` | `deploy.py` — target ends in `FAILED` | `PERMISSION_DENIED: ... <sp-id> does not have read permission` on the agent |
-| Warehouse `CAN_USE` | first query, in the Genie message payload | `PERMISSION_DENIED: <sp-id> is not authorized to use or monitor this SQL Endpoint` |
+| Warehouse `CAN_USE` | does not surface: re-tested 5 Oct 2026, queries answered without it | none today. Earlier runs recorded `PERMISSION_DENIED: <sp-id> is not authorized to use or monitor this SQL Endpoint`; not reproduced |
 | UC `SELECT` / `USE SCHEMA` | first query, in the Genie message payload | `PERMISSION_DENIED: No access to '<catalog>.<schema>.<table>' … you must have SELECT on each data asset` |
 
 ## Configuration
@@ -367,7 +372,7 @@ Databricks UI:
 3. Confirm both appear in the panel's list before you navigate away. If your workspace shows a
    **Save** or **Confirm** action, use it.
 
-Then confirm the SP has the agent / warehouse / Unity Catalog grants from
+Then confirm the SP has the agent and Unity Catalog grants from
 [Service principal permissions](#service-principal-permissions).
 
 > **"You don't have SELECT access" warning when adding a table — safe to ignore.** When
