@@ -35,7 +35,10 @@ export NOTIFICATION_EMAIL=""      # Quick notification email
 # ---- Console-only ids (collected part-way through; see README run order) ----
 # These come from console steps, so they are empty on a first run and filled in
 # before the datasource/space/flow phases.
-export GENIE_SPACE_ID=""                    # Databricks Genie Agent id (see GENIE_SPACE_SETUP_RUNBOOK.md)
+# GENIE_SPACE_ID is console-collected only if you created the Genie Agent in the console. The
+# scripted genie phase saves it to scripts/.env.generated instead, which loads after this file
+# and takes precedence, so leave this empty on that path.
+export GENIE_SPACE_ID=""                    # Genie Agent id: Configure -> About ("Agent ID")
 export DATASET_ID=""                        # aws quicksight list-data-sets
 export GENIE_MCP_CONNECTOR_ID=""            # list-action-connectors, MODEL_CONTEXT_PROTOCOL row
 export OPENAPI_ACTION_CONNECTOR_ID=""       # list-action-connectors, OPEN_API row

@@ -167,7 +167,7 @@ Find them all with: `grep -rn "<[A-Z_]*>" .`
 | `<REGION>` | the single AWS region for the whole solution (must support S3 Tables + Quick; e.g. `us-west-2`) | you choose it once |
 | `<WORKSPACE_HOST>` | Databricks workspace host (`dbc-xxxx.cloud.databricks.com`) | workspace URL |
 | `<DATABRICKS_ACCOUNT_ID>` | Databricks account id | account console |
-| `<GENIE_SPACE_ID>` | Genie Agent id | see `docs/GENIE_SPACE_SETUP_RUNBOOK.md` |
+| `<GENIE_SPACE_ID>` | Genie Agent id | the Agent's **Configure → About** panel, labelled Agent ID |
 | `<WAREHOUSE_ID>` | Serverless SQL warehouse id | SQL Warehouses list |
 | `<GENIE_MCP_CONNECTOR_ID>` / `<OPENAPI_ACTION_CONNECTOR_ID>` | Quick action-connector ids | `aws quicksight list-action-connectors` |
 | `<OPENAPI_SUBMIT_ORDER_ACTION_ID>` / `<OPENAPI_CREATE_TICKET_ACTION_ID>` | OpenAPI action ids | connector Test action, or `describe-action-connector` |
@@ -186,7 +186,7 @@ See `docs/COST_AND_CLEANUP.md`. In short: the solution is serverless/usage-based
 (~USD 1.50/month at rest — mostly one customer-managed KMS key + the Secrets Manager secret);
 tear down the order API with
 `aws cloudformation delete-stack --stack-name supplier-order-api --region <REGION>`, delete the
-S3 Tables data, and remove the Quick flow/connectors and the Databricks Agent/warehouse.
+S3 Tables data, and remove the Quick flow/connectors and the Genie Agent and SQL warehouse.
 
 ## License
 MIT-0. See `LICENSE`.

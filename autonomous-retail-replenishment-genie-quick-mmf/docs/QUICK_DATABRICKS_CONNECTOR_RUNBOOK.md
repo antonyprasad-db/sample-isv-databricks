@@ -1,6 +1,6 @@
 # Amazon Quick → Databricks Genie (MCP Connector) — Setup Runbook
 
-Connects Amazon Quick to your Databricks Genie Agent over MCP (OAuth/3LO), so Quick can ask the
+Connects Amazon Quick to your Databricks Genie Agent over MCP (OAuth/3LO), so Quick can ask
 the Agent natural-language questions and get surge results back. **Console-only** — there is no API/CLI
 for Quick connectors. Prerequisites: an Amazon Quick account provisioned in `<REGION>`
 (`QUICK_ACCOUNT_SETUP_RUNBOOK.md`) and the Genie Agent already created (`GENIE_SPACE_SETUP_RUNBOOK.md`).

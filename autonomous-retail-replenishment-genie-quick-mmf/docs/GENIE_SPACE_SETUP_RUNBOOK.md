@@ -15,7 +15,8 @@ Console steps are in the Databricks workspace UI.
 - **CAN USE** on that warehouse and **SELECT** on `mmf.fresh_retail_net`.
 
 ## STEP 1 — Create the Agent
-In the Databricks workspace, open **Genie** from the sidebar, then **New**, and create a Genie Agent.
+In the Databricks workspace, click **Genie Agents** in the sidebar, then **New** in the upper-right
+corner, and create the Agent with these values:
 
 | Field | Value |
 |---|---|
@@ -23,23 +24,35 @@ In the Databricks workspace, open **Genie** from the sidebar, then **New**, and 
 | SQL warehouse | `supply-chain-genie` (your serverless warehouse) |
 | Default catalog / schema | `mmf` / `fresh_retail_net` |
 
-Save, then record the id as `<GENIE_SPACE_ID>` in your env file — `cleanup/cleanup.sh` and the
-connector runbook both read it. Three ways to get it, in increasing order of dependencies:
+Save, then record the id as `<GENIE_SPACE_ID>` in `.supply-chain-automation-env`: `cleanup/cleanup.sh`
+reads it, and the connector runbook needs it for the MCP endpoint. If you created the Agent with
+`scripts/setup_databricks.sh` instead, the id is already saved in `scripts/.env.generated`, which is
+loaded after your env file and takes precedence.
 
-1. **The address bar.** The id is the last path segment of the Agent's URL. The prefix changed with
-   the Spaces-to-Agents rename, so read it off the URL rather than matching a remembered pattern.
-2. **The Agent's Configure panel**, which labels it **Agent ID**.
-3. **The CLI**, which needs the Databricks CLI, `jq` and a workspace profile:
+Get the id from the Agent's **Configure → About** panel, where the UI labels it **Agent ID**. Or from
+the CLI, with your env file sourced:
 
 ```bash
-databricks genie list-spaces --profile "$DBX_PROFILE" --output json \
-  | jq -r '.spaces[]? | select(.title=="Fresh Retail Sales Forecasting") | .space_id'
+databricks genie list-spaces --profile "${DBX_PROFILE:?source .supply-chain-automation-env first}" \
+  --output json \
+  | jq -r --arg t "${GENIE_SPACE_TITLE:-Fresh Retail Sales Forecasting}" \
+      '.spaces[]? | select(.title==$t) | .space_id'
 ```
 
-The UI says Agent ID, the API returns `space_id`, and `<GENIE_SPACE_ID>` keeps its original name.
+This should print exactly one id. It reads only the first page of results, so in a workspace with many
+Genie Agents it can print nothing even though yours exists; use the Configure panel then. Two ids mean
+two Agents share the title. `scripts/setup_databricks.sh` titles the Agent
+`Supply Chain Demand Forecasting (Chronos-2)` rather than the name above, so set `GENIE_SPACE_TITLE` to
+that to look up a scripted Agent. `cleanup/cleanup.sh` discovers by the same variable when
+`GENIE_SPACE_ID` is unset, which is why recording the id matters on the console path.
+
+The id also appears in the Agent's URL, but not necessarily as the last path segment, and the prefix
+changed with the Spaces-to-Agents rename, so prefer the two routes above. The UI says Agent ID, the API
+returns `space_id`, and `<GENIE_SPACE_ID>` keeps its original name.
 
 ## STEP 2 — Add the six tables/views
-In the Agent, go to **Configure → Data → Add** and add exactly these **6** objects from `mmf.fresh_retail_net`:
+In the Agent, go to **Configure → Data** and click **Add** (the tuning docs label this tab **Sources**),
+then add exactly these **6** objects from `mmf.fresh_retail_net`:
 
 | # | Object | Created by | Purpose |
 |---|---|---|---|
@@ -53,11 +66,12 @@ In the Agent, go to **Configure → Data → Add** and add exactly these **6** o
 (These are the 6 objects the connector runbook and end-to-end tests refer to as "the 6 tables.")
 
 ## STEP 3 — Paste the Agent instructions
-**Configure → Instructions** → paste the full contents of `genie/genie_instructions.md`. These define
-what a SKU is, how to resolve product/region names, and the surge output contract.
+**Configure → Text** → paste the full contents of `genie/genie_instructions.md` as the general
+instructions. These define what a SKU is, how to resolve product/region names, and the surge output
+contract.
 
 ## STEP 4 — Pin the trusted surge query (determinism)
-**Configure → Example / Trusted queries** → add a new one → paste `genie/genie_surge_trusted_query.sql`.
+**Configure → Examples** → **Add** an example query → paste `genie/genie_surge_trusted_query.sql`.
 Mark it **trusted**. This is what makes unattended surge detection reproducible: Genie reuses this
 exact SQL instead of generating (and drifting) its own each run.
 
