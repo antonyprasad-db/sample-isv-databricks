@@ -46,7 +46,8 @@ though yours exists; use the Configure panel then. Two ids mean two Agents share
 `scripts/setup_databricks.sh` titles the Agent `Supply Chain Demand Forecasting (Chronos-2)` rather
 than the name above, so set `GENIE_SPACE_TITLE` to that to look up a scripted Agent.
 `cleanup/cleanup.sh` discovers by the same variable when `GENIE_SPACE_ID` is unset, so on the console
-path record the id or set `GENIE_SPACE_TITLE` in your env file.
+path record the id. Setting `GENIE_SPACE_TITLE` instead is a fallback: cleanup's title lookup reads
+only the first page of results and takes the first match.
 
 The id also appears in the Agent's URL, though not necessarily as the last path segment, so prefer
 the two routes above. The UI says Agent ID, the API
@@ -87,10 +88,12 @@ reuses the SQL verbatim on every run.
 ## STEP 5 — Validate the Agent directly (before wiring Quick)
 In the Genie Agent chat:
 - *"How many SKUs do we have?"* → **1,000**
-- The Flow's own surge prompt (Step 1, Detect Demand Surges, in `flow/flow_definition.json`) →
-  **6** surging SKUs with the seven columns above. This is the check that matters: the Flow sends
-  that prompt, not the example's question, so it is the one that shows whether Genie stays on the
-  example SQL (see `flow/flow_build_guide.md`)
+- The Flow's own surge prompt (Step 1, Detect Demand Surges) → **6** surging SKUs with
+  `unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, surge_ratio`.
+  This is the check that matters: the Flow sends that prompt, not the example's question, so it is
+  the one that shows whether Genie stays on the example SQL. The prompt is stored JSON-escaped, so
+  print it rather than copying it from the file:
+  `jq -r '.FlowDefinition.Steps[0].StepConfig.ConnectorActionsConfig.prompt' flow/flow_definition.json`
 - *"Which products are surging in the Northeast?"* → returns the surging SKUs with
   `unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, surge_ratio`
 - *"Is Skim Milk demand spiking in the Northeast?"* → surge answer, ratio ~1.69, ~50 units/7d

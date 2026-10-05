@@ -9,7 +9,8 @@ for Quick connectors. Prerequisites: an Amazon Quick account provisioned in `<RE
 - Databricks workspace host: `<WORKSPACE_HOST>` (e.g. `dbc-xxxx.cloud.databricks.com`)
 - Databricks account console: `accounts.cloud.databricks.com` (your account `<DATABRICKS_ACCOUNT_ID>`)
 - Genie Agent: **Fresh Retail Sales Forecasting** (titled `Supply Chain Demand Forecasting (Chronos-2)` if `scripts/setup_databricks.sh` created it), space_id `<GENIE_SPACE_ID>`
-- SQL warehouse: `supply-chain-genie` (`<WAREHOUSE_ID>`, Serverless) — attached to the Agent
+- SQL warehouse: `supply-chain-genie` (`<WAREHOUSE_ID>`, Serverless) — attached to the Agent (on the
+  scripted path, the warehouse `scripts/setup_databricks.sh` created or reused)
 - AWS account / region: `<ACCOUNT_ID>` / `<REGION>` (Amazon Quick must be in `<REGION>`)
 
 ---
