@@ -498,7 +498,7 @@ def main() -> None:
 
     print(
         f"\nDone. Now add {fq}.products and {fq}.sales to your Genie Agent "
-        "(Genie -> Configure -> Data -> Add), then run:\n"
+        "(see \"Load a sample dataset\" in the README), confirm the service principal's grants, then run:\n"
         '  python invoke.py "What were our top 5 products by revenue last quarter?"'
     )
 

@@ -44,7 +44,6 @@ ICON_SOURCES = {
     "bedrock": "Architecture-Service-Icons_04302026/Arch_Artificial-Intelligence/64/Arch_Amazon-Bedrock_64.svg",
     "cognito": "Architecture-Service-Icons_04302026/Arch_Security-Identity/64/Arch_Amazon-Cognito_64.svg",
     "secrets-manager": "Architecture-Service-Icons_04302026/Arch_Security-Identity/64/Arch_AWS-Secrets-Manager_64.svg",
-    "cloudwatch": "Architecture-Service-Icons_04302026/Arch_Management-Tools/64/Arch_Amazon-CloudWatch_64.svg",
     # Databricks brand icons
     "connectors": "databricks/connectors.png",
     "chat": "databricks/chat.png",
