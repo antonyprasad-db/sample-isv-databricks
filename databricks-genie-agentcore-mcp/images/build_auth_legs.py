@@ -6,10 +6,11 @@ so unlike build_architecture.py this script has no --icons path and no cache: it
 is self-contained and reproducible from a clean checkout.
 
     python build_auth_legs.py
-    rsvg-convert -w 1872 auth-legs.svg -o auth-legs.png
+    rsvg-convert -w 2064 auth-legs.svg -o auth-legs.png
 
-1872 is twice the 936px width AWS Builder Center serves images at, so the PNG
-stays crisp on a high-density display without shipping wasted pixels.
+2064 matches the README's architecture.png. For a page that serves images at 936px, such as
+AWS Builder Center, render at -w 1872 instead: twice the served width, crisp on a high-density
+display without shipping wasted pixels.
 """
 
 W, H = 1720, 1080

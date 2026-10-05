@@ -6,7 +6,7 @@ with no external assets. This script is the source used to produce it, so a
 future icon refresh or layout change is an edit here rather than a rebuild by
 hand.
 
-The Amazon Bedrock, Amazon Cognito and Amazon CloudWatch marks come from the
+The Amazon Bedrock, Amazon Cognito and AWS Secrets Manager marks come from the
 official AWS Architecture Icons toolkit (https://aws.amazon.com/architecture/icons/,
 04302026 release). The Amazon Bedrock AgentCore mark is a separate brand export --
 the toolkit release used here ships no AgentCore service icon -- and Runtime /
@@ -301,8 +301,8 @@ for i, ln in enumerate(
         "Unity Catalog attributes every statement to the service principal configured in the outbound "
         "OAuth2 credential provider. That is the right",
         "model for a shared, application-level integration, and it is explicitly NOT per-user "
-        "authorization. The identity-and-attribution figure",
-        "shows which principal lands in which audit log, and what you can and cannot answer from them.",
+        "authorization: the person who asked appears nowhere in the Unity Catalog audit log.",
+        "See Validate governance in the README for what each log can and cannot answer.",
     ]
 ):
     a(f'<text x="165" y="{906 + i * 22}" font-size="14" fill="{MUTED}">{ln}</text>')

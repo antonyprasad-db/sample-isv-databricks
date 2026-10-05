@@ -4,7 +4,7 @@ Expose a [Databricks Genie Agent](https://docs.databricks.com/aws/en/genie-agent
 
 ![Databricks Genie via Amazon Bedrock AgentCore Gateway architecture](images/architecture.png)
 
-**Call flow.** A Strands agent on AgentCore Runtime takes a business analyst's question (1) and
+**Call flow** (the numbers in the figure above). A Strands agent on AgentCore Runtime takes a business analyst's question (1) and
 mints a Cognito token with a client-credentials grant (2), then opens an MCP session to AgentCore
 Gateway with that token as a bearer JWT (3). The Gateway asks AgentCore Identity for the Databricks
 credential (4); Identity reads the OAuth secret from Secrets Manager and mints a service-principal
@@ -20,8 +20,9 @@ Overview is [`images/auth-legs.svg`](images/auth-legs.svg), from
 AWS Secrets Manager marks are from the official
 [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) toolkit; the Amazon Bedrock
 AgentCore mark is a separate brand export. To change either diagram, edit its builder and re-run
-it from `images/` (both read the committed `icons_b64.json` cache, so neither needs the icon
-toolkit on disk), then regenerate the PNG, for example
+it from `images/` (the architecture builder reads the committed `icons_b64.json` cache, and the
+auth-legs builder uses no icons, so neither needs the icon toolkit on disk), then regenerate the
+PNG, for example
 `rsvg-convert -w 2064 architecture.svg -o architecture.png`. Both are vector, so they render at
 any width: use `-w 1872` for a 2x asset on a page that serves images at 936px.</sub>
 
@@ -34,6 +35,9 @@ This sample registers the [Databricks-managed Genie MCP endpoint](https://docs.d
 - **Audit** — Unity Catalog audit logs attribute SQL execution to the service principal; AgentCore Runtime and Gateway emit CloudWatch traces for each tool invocation
 
 ![The two independent auth legs: inbound authorizes the caller into the Gateway, outbound decides which Databricks identity runs the SQL](images/auth-legs.png)
+
+<sub>This figure numbers its own sequence, separately from the call flow under the architecture
+figure.</sub>
 
 > **Auth model.** This sample uses machine-to-machine (client-credentials) auth end to end, so Genie runs as the service principal, and Unity Catalog audit attributes every query to that service principal — not to the person who asked. That is the right model for a shared, application-level integration where all callers share one permission set. It also means **this sample does not give you per-user authorization**.
 >
@@ -159,11 +163,11 @@ it **Agent ID**:
 
 ![The Configure panel of a Genie Agent, with tabs About, Sources, Instructions and Examples, and the About tab's "About this agent" section listing the Agent ID](images/genie-configure-about.png)
 
-<sub>Captured from the live UI on 29 September 2026, with the owner's name removed and the
-middle of the About tab cut. Some Databricks pages, including DevHub, still say the id is on a
+<sub>Captured from the live UI on 29 September 2026, with the owner's name removed and the top of
+the About tab's content cut. Some Databricks pages, including DevHub, still say the id is on a
 Settings tab; the Configure panel shown here has no Settings tab.</sub>
 
- Use that value as `GENIE_SPACE_ID`: the UI says Agent ID, the API returns
+Use that value as `GENIE_SPACE_ID`: the UI says Agent ID, the API returns
 `space_id`, and the environment variable keeps its original name. The id also appears in the
 address bar, but prefer either route above: the console path has already changed once with the
 Spaces-to-Agents rename. The

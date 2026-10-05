@@ -89,6 +89,6 @@
 <rect x="165" y="848" width="470" height="30" rx="15" fill="#FEF3F1"/>
 <text x="400.0" y="868" font-size="14" font-weight="700" fill="#FF3621" text-anchor="middle">Genie runs as the service principal, not as the person asking</text>
 <text x="165" y="906" font-size="14" fill="#5A6B7B">Unity Catalog attributes every statement to the service principal configured in the outbound OAuth2 credential provider. That is the right</text>
-<text x="165" y="928" font-size="14" fill="#5A6B7B">model for a shared, application-level integration, and it is explicitly NOT per-user authorization. The identity-and-attribution figure</text>
-<text x="165" y="950" font-size="14" fill="#5A6B7B">shows which principal lands in which audit log, and what you can and cannot answer from them.</text>
+<text x="165" y="928" font-size="14" fill="#5A6B7B">model for a shared, application-level integration, and it is explicitly NOT per-user authorization: the person who asked appears nowhere in the Unity Catalog audit log.</text>
+<text x="165" y="950" font-size="14" fill="#5A6B7B">See Validate governance in the README for what each log can and cannot answer.</text>
 </svg>
