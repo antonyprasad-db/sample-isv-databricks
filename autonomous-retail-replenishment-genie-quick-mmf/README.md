@@ -186,7 +186,7 @@ See `docs/COST_AND_CLEANUP.md`. In short: the solution is serverless/usage-based
 (~USD 1.50/month at rest — mostly one customer-managed KMS key + the Secrets Manager secret);
 tear down the order API with
 `aws cloudformation delete-stack --stack-name supplier-order-api --region <REGION>`, delete the
-S3 Tables data, and remove the Quick flow/connectors and Databricks space/warehouse.
+S3 Tables data, and remove the Quick flow/connectors and the Databricks Agent/warehouse.
 
 ## License
 MIT-0. See `LICENSE`.
