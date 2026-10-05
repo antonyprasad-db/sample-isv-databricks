@@ -7,8 +7,8 @@ The gateway handles all auth complexity:
 
 Deployed with the AgentCore CLI, not run directly:
 
-    agentcore configure --entrypoint genie_agent.py --non-interactive --deployment-type container --region <region>
-    agentcore deploy   # with the five --env flags from the README; a bare deploy drops them
+    agentcore configure --entrypoint genie_agent.py --non-interactive --deployment-type container --disable-memory --region <region>
+    agentcore deploy
 
 Configuration comes from the environment -- GATEWAY_URL, COGNITO_TOKEN_ENDPOINT,
 COGNITO_CLIENT_ID, COGNITO_CLIENT_SECRET, COGNITO_SCOPE -- falling back to
