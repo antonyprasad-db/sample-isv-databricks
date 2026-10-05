@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1720" height="1080" viewBox="0 0 1720 1080" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+<rect width="1720" height="1080" fill="#FFFFFF"/>
+<defs>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57728B"/></marker>
+</defs>
+<text x="40" y="46" font-size="24" fill="#232F3E" font-weight="700" text-anchor="start">Two independent auth legs, and the grant each one needs</text>
+<text x="40" y="73" font-size="15" fill="#5A6B7B" text-anchor="start">Inbound authorizes the caller into the Gateway. Outbound decides which Databricks identity runs the SQL. Neither implies the other.</text>
+<text x="160" y="136" font-size="15.5" fill="#232F3E" font-weight="600" text-anchor="middle">MCP client</text>
+<text x="160" y="156" font-size="13.5" fill="#5A6B7B" text-anchor="middle">invoke.py or</text>
+<text x="160" y="174" font-size="13.5" fill="#5A6B7B" text-anchor="middle">AgentCore Runtime</text>
+<path d="M 160 215 L 160 835" stroke="#C8D2DC" stroke-width="1.5"/>
+<text x="505" y="136" font-size="15.5" fill="#232F3E" font-weight="600" text-anchor="middle">Amazon Cognito</text>
+<text x="505" y="156" font-size="13.5" fill="#5A6B7B" text-anchor="middle">user pool</text>
+<text x="505" y="174" font-size="13.5" fill="#5A6B7B" text-anchor="middle">token endpoint</text>
+<path d="M 505 215 L 505 835" stroke="#C8D2DC" stroke-width="1.5"/>
+<text x="850" y="136" font-size="15.5" fill="#232F3E" font-weight="600" text-anchor="middle">AgentCore Gateway</text>
+<text x="850" y="156" font-size="13.5" fill="#5A6B7B" text-anchor="middle">mcpServer</text>
+<text x="850" y="174" font-size="13.5" fill="#5A6B7B" text-anchor="middle">target</text>
+<path d="M 850 215 L 850 835" stroke="#C8D2DC" stroke-width="1.5"/>
+<text x="1195" y="136" font-size="15.5" fill="#232F3E" font-weight="600" text-anchor="middle">AgentCore Identity</text>
+<text x="1195" y="156" font-size="13.5" fill="#5A6B7B" text-anchor="middle">OAuth2 credential</text>
+<text x="1195" y="174" font-size="13.5" fill="#5A6B7B" text-anchor="middle">provider</text>
+<path d="M 1195 215 L 1195 835" stroke="#C8D2DC" stroke-width="1.5"/>
+<text x="1545" y="136" font-size="15.5" fill="#232F3E" font-weight="600" text-anchor="middle">Databricks</text>
+<text x="1545" y="156" font-size="13.5" fill="#5A6B7B" text-anchor="middle">workspace</text>
+<text x="1545" y="174" font-size="13.5" fill="#5A6B7B" text-anchor="middle">/oidc + Genie MCP</text>
+<path d="M 1545 215 L 1545 835" stroke="#C8D2DC" stroke-width="1.5"/>
+<rect x="96" y="239" width="124" height="28" rx="14" fill="#F1FAF8"/>
+<text x="158" y="258" font-size="14" fill="#01A88D" font-weight="700" text-anchor="middle">INBOUND</text>
+<text x="238" y="258" font-size="14" fill="#01A88D" text-anchor="start">who may call the Gateway at all</text>
+<path d="M 160 305 L 505 305" stroke="#57728B" stroke-width="2" marker-end="url(#ah)"/>
+<text x="332.5" y="294" font-size="13.5" fill="#232F3E" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace">client_credentials grant</text>
+<circle cx="332.5" cy="330" r="13" fill="#232F3E"/>
+<text x="332.5" y="335" font-size="13.5" fill="#FFFFFF" font-weight="700" text-anchor="middle">1</text>
+<path d="M 505 368 L 160 368" stroke="#57728B" stroke-width="2" marker-end="url(#ah)"/>
+<text x="332.5" y="357" font-size="13.5" fill="#232F3E" text-anchor="middle">short-lived JWT access token</text>
+<circle cx="332.5" cy="393" r="13" fill="#232F3E"/>
+<text x="332.5" y="398" font-size="13.5" fill="#FFFFFF" font-weight="700" text-anchor="middle">2</text>
+<path d="M 160 431 L 850 431" stroke="#57728B" stroke-width="2" marker-end="url(#ah)"/>
+<text x="505.0" y="420" font-size="13.5" fill="#232F3E" text-anchor="middle">MCP initialize + tools/list, Bearer JWT</text>
+<circle cx="505.0" cy="456" r="13" fill="#232F3E"/>
+<text x="505.0" y="461" font-size="13.5" fill="#FFFFFF" font-weight="700" text-anchor="middle">3</text>
+<text x="880" y="486" font-size="13.5" fill="#5A6B7B" text-anchor="start">Gateway validates the JWT against the pool's OIDC discovery URL (CUSTOM_JWT authorizer)</text>
+<rect x="96" y="529" width="124" height="28" rx="14" fill="#FEF3F1"/>
+<text x="158" y="548" font-size="14" fill="#FF3621" font-weight="700" text-anchor="middle">OUTBOUND</text>
+<text x="238" y="548" font-size="14" fill="#FF3621" text-anchor="start">which Databricks identity actually runs the SQL</text>
+<path d="M 850 595 L 1195 595" stroke="#57728B" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1022.5" y="584" font-size="13.5" fill="#232F3E" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace">GetResourceOauth2Token</text>
+<circle cx="1022.5" cy="620" r="13" fill="#232F3E"/>
+<text x="1022.5" y="625" font-size="13.5" fill="#FFFFFF" font-weight="700" text-anchor="middle">4</text>
+<path d="M 1195 658 L 1545 658" stroke="#57728B" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1370.0" y="647" font-size="13.5" fill="#232F3E" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace">client_credentials, scope=genie, at /oidc/v1/token</text>
+<circle cx="1370.0" cy="683" r="13" fill="#232F3E"/>
+<text x="1370.0" y="688" font-size="13.5" fill="#FFFFFF" font-weight="700" text-anchor="middle">5</text>
+<path d="M 1545 721 L 850 721" stroke="#57728B" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1197.5" y="710" font-size="13.5" fill="#232F3E" text-anchor="middle">service principal access token</text>
+<circle cx="1197.5" cy="746" r="13" fill="#232F3E"/>
+<text x="1197.5" y="751" font-size="13.5" fill="#FFFFFF" font-weight="700" text-anchor="middle">6</text>
+<path d="M 850 784 L 1545 784" stroke="#57728B" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1197.5" y="773" font-size="13.5" fill="#232F3E" text-anchor="middle" font-family="SFMono-Regular, Menlo, Consolas, monospace">tools/call -&gt; Genie Agent MCP endpoint</text>
+<circle cx="1197.5" cy="809" r="13" fill="#232F3E"/>
+<text x="1197.5" y="814" font-size="13.5" fill="#FFFFFF" font-weight="700" text-anchor="middle">7</text>
+<rect x="96" y="886" width="232" height="30" rx="15" fill="#FEF3F1"/>
+<text x="212" y="906" font-size="14" fill="#FF3621" font-weight="700" text-anchor="middle">Two things that bite here</text>
+<text x="100" y="948" font-size="13.5" fill="#5A6B7B" text-anchor="start">Measured in this sample, not documented: the secret is read per gateway</text>
+<text x="100" y="970" font-size="13.5" fill="#5A6B7B" text-anchor="start">SESSION, not per token lifetime. One question that called query_space and</text>
+<text x="100" y="992" font-size="13.5" fill="#5A6B7B" text-anchor="start">then poll_response produced two GetSecretValue calls 21 seconds apart, from</text>
+<text x="100" y="1014" font-size="13.5" fill="#5A6B7B" text-anchor="start">two different gateway-session role sessions. Budget KMS Decrypt per tool</text>
+<text x="100" y="1036" font-size="13.5" fill="#5A6B7B" text-anchor="start">call, not per hour, on a customer-managed key.</text>
+<text x="900" y="948" font-size="13.5" fill="#5A6B7B" text-anchor="start">The grant step fails closed, and late. Omit the gateway role's</text>
+<text x="900" y="970" font-size="13.5" fill="#5A6B7B" text-anchor="start">GetResourceOauth2Token or GetSecretValue grant and the target still reaches</text>
+<text x="900" y="992" font-size="13.5" fill="#5A6B7B" text-anchor="start">READY, then every tool call fails immediately. A READY target is not</text>
+<text x="900" y="1014" font-size="13.5" fill="#5A6B7B" text-anchor="start">evidence that the outbound leg works, only a real query is.</text>
+</svg>

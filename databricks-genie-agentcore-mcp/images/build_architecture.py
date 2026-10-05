@@ -43,12 +43,14 @@ ICON_SOURCES = {
     # AWS Architecture Icons toolkit (Asset-Package_04302026)
     "bedrock": "Architecture-Service-Icons_04302026/Arch_Artificial-Intelligence/64/Arch_Amazon-Bedrock_64.svg",
     "cognito": "Architecture-Service-Icons_04302026/Arch_Security-Identity/64/Arch_Amazon-Cognito_64.svg",
+    "secrets-manager": "Architecture-Service-Icons_04302026/Arch_Security-Identity/64/Arch_AWS-Secrets-Manager_64.svg",
     "cloudwatch": "Architecture-Service-Icons_04302026/Arch_Management-Tools/64/Arch_Amazon-CloudWatch_64.svg",
     # Databricks brand icons
     "connectors": "databricks/connectors.png",
     "chat": "databricks/chat.png",
     "unity-catalog": "databricks/unity-catalog.png",
     "delta-table": "databricks/delta-table.png",
+    "sql-warehouse": "databricks/data-warehouse-1.png",
     "data-analyst-persona": "databricks/data-analyst-persona.png",
 }
 
@@ -114,7 +116,7 @@ def load_icons() -> dict:
 
 ICONS = load_icons()
 
-W, H = 1720, 900
+W, H = 1720, 1010
 
 INK = "#232F3E"  # AWS squid ink, body text
 MUTED = "#5A6B7B"  # secondary labels
@@ -188,6 +190,24 @@ def label(x, y, text, anchor="middle", mono=False, small=False):
     a(f'<text x="{x}" y="{y}" font-size="{fs}" fill="{INK}" text-anchor="{anchor}"{fam}>{text}</text>')
 
 
+# ---------------------------------------------------------------- helpers
+def badge(cx, cy, n):
+    """Numbered call-flow marker. The prose walks these in order."""
+    a(f'<circle cx="{cx}" cy="{cy}" r="14" fill="{INK}"/>')
+    a(
+        f'<text x="{cx}" y="{cy + 5}" font-size="14" font-weight="700" fill="#FFFFFF" '
+        f'text-anchor="middle">{n}</text>'
+    )
+
+
+def pill(x, y, w, text_, bg, fg):
+    a(f'<rect x="{x}" y="{y}" width="{w}" height="30" rx="15" fill="{bg}"/>')
+    a(
+        f'<text x="{x + w / 2}" y="{y + 20}" font-size="14" font-weight="700" fill="{fg}" '
+        f'text-anchor="middle">{text_}</text>'
+    )
+
+
 # ---------------------------------------------------------------- title
 a(
     f'<text x="40" y="46" font-size="24" font-weight="700" fill="{INK}">'
@@ -195,97 +215,98 @@ a(
 )
 a(
     f'<text x="40" y="73" font-size="15" fill="{MUTED}">'
-    f"Machine-to-machine (client-credentials) auth end to end — Genie runs as a Databricks "
-    f"service principal</text>"
+    f"Machine-to-machine OAuth2 end to end \u2014 Genie executes as a Databricks service principal, "
+    f"and Unity Catalog audits it as that principal</text>"
 )
 
-# ---------------------------------------------------------------- end user
-node(86, 292, "data-analyst-persona", "End user", "(business analyst)", size=56)
+# ---------------------------------------------------------------- business analyst
+node(80, 330, "data-analyst-persona", "Business", "analyst", size=52)
 
 # ---------------------------------------------------------------- AWS account
-box(190, 112, 800, 700, "AWS account", BOX_AWS_BG, BOX_AWS_EDGE)
+box(165, 110, 845, 700, "AWS account", BOX_AWS_BG, BOX_AWS_EDGE)
+box(192, 150, 790, 320, "Amazon Bedrock AgentCore", BOX_AC_BG, BOX_AC_EDGE)
 
-# AgentCore boundary: Runtime -> Gateway across the top, Identity beneath Gateway.
-box(216, 152, 700, 430, "Amazon Bedrock AgentCore", BOX_AC_BG, BOX_AC_EDGE)
+node(310, 258, "agentcore", "AgentCore Runtime", "Strands agent")
+node(600, 258, "agentcore", "AgentCore Gateway", "mcpServer target")
+node(885, 258, "agentcore", "AgentCore Identity", "credential provider")
 
-node(350, 262, "agentcore", "AgentCore Runtime", "Strands agent", "(BedrockAgentCoreApp)")
-node(760, 262, "agentcore", "AgentCore Gateway", "MCP endpoint", "mcpServer target")
-node(760, 486, "agentcore", "AgentCore Identity", "outbound credential provider")
-
-# Amazon Bedrock is a sibling of AgentCore, not its parent.
-box(216, 620, 300, 170, "Amazon Bedrock", "#FFFFFF", MUTED, dash="5 4")
-node(366, 700, "bedrock", "Claude / Nova", "model inference", size=52)
-
-# Supporting services
-node(700, 700, "cognito", "Amazon Cognito", "inbound auth", "(CUSTOM_JWT)", size=52)
-node(893, 700, "cloudwatch", "CloudWatch", "traces / logs", size=52)
+node(300, 672, "cognito", "Amazon Cognito", "inbound auth \u2014 CUSTOM_JWT", size=52)
+node(600, 672, "bedrock", "Amazon Bedrock", "composes the answer", size=52)
+node(885, 672, "secrets-manager", "Secrets Manager", "Databricks OAuth secret", size=52)
 
 # ---------------------------------------------------------------- Databricks
-box(1052, 112, 630, 620, "Databricks workspace on AWS", BOX_DBX_BG, BOX_DBX_EDGE)
+box(1062, 110, 628, 700, "Databricks workspace on AWS", BOX_DBX_BG, BOX_DBX_EDGE)
 
-node(1367, 232, "connectors", "Managed MCP server", "/api/2.0/mcp/genie/{space_id}", size=56)
-node(1367, 402, "chat", "Genie Agent", "Trusted Assets", size=56)
-node(1204, 600, "unity-catalog", "Unity Catalog", "permissions + audit", size=56)
-node(1532, 600, "delta-table", "Delta tables", "governed data", size=56)
+node(1232, 212, "connectors", "Managed MCP server", "Genie Agent endpoint", size=54)
+node(1232, 388, "chat", "Genie Agent", "Trusted Assets", size=54)
+node(1232, 560, "sql-warehouse", "SQL warehouse", "executes the SQL", size=54)
+node(1232, 724, "delta-table", "Delta tables", "governed data", size=54)
+node(1568, 560, "unity-catalog", "Unity Catalog", "authorizes + audits", "as the service principal", size=54)
 
-# ---------------------------------------------------------------- flows
-# end user -> Runtime
-arrow(122, 288, 310, 268)
-label(215, 268, "NL question")
+# ---------------------------------------------------------------- call flow
+arrow(114, 322, 272, 276)
+badge(196, 286, 1)
 
-# Runtime -> Gateway
-arrow(400, 252, 720, 252)
-label(560, 242, "MCP tool call")
+arrow(300, 344, 300, 634, dashed=True)
+label(288, 430, "client_credentials", anchor="end", small=True)
+label(288, 450, "grant \u2192 JWT", anchor="end", small=True)
+badge(300, 500, 2)
 
-# Gateway <-> Identity (vertical pair: request down, token back up)
-arrow(748, 372, 748, 446)
-label(739, 412, "GetResourceOauth2Token", anchor="end", small=True)
-arrow(776, 446, 776, 372, dashed=True)
-label(786, 412, "OAuth2 M2M token", anchor="start", small=True)
+arrow(340, 344, 586, 634, dashed=True)
+label(548, 556, "invoke model", anchor="start", small=True)
 
-# Runtime -> Bedrock (model inference)
-arrow(350, 312, 358, 662, dashed=True)
-label(366, 480, "invoke model", anchor="start")
+arrow(352, 250, 556, 250)
+label(454, 226, "MCP session \u00b7 Bearer JWT", small=True)
+badge(454, 300, 3)
 
-# Cognito -> Gateway (inbound JWT), into the Gateway's left edge
+arrow(646, 250, 841, 250)
+label(744, 226, "GetResourceOauth2Token", small=True)
+badge(744, 300, 4)
+
 a(
-    f'<path d="M 700 668 L 580 668 L 580 262 L 726 262" fill="none" stroke="{MUTED}" '
-    f'stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ahd)"/>'
+    f'<path d="M 885 344 L 885 634" fill="none" stroke="{MUTED}" stroke-width="2" '
+    f'stroke-dasharray="6 5" marker-end="url(#ahd)"/>'
 )
-label(570, 470, "JWT", anchor="end")
+label(873, 414, "reads the secret, mints an", anchor="end", small=True)
+label(873, 434, "OAuth2 M2M token at", anchor="end", small=True)
+label(873, 454, "/oidc/v1/token", anchor="end", small=True, mono=True)
 
-# Gateway -> CloudWatch, out of the Gateway's right edge
 a(
-    f'<path d="M 794 262 L 962 262 L 962 700 L 926 700" fill="none" stroke="{MUTED}" '
-    f'stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ahd)"/>'
+    f'<path d="M 630 222 L 630 178 L 1205 178 L 1205 194" fill="none" stroke="{LINE}" '
+    f'stroke-width="2" marker-end="url(#ah)"/>'
 )
-label(972, 470, "traces", anchor="start")
+label(800, 168, "MCP / HTTPS \u00b7 the service principal\u2019s access token", small=True)
+badge(1120, 178, 5)
 
-# Gateway -> Databricks managed MCP (the governed hop)
-arrow(800, 232, 1307, 222)
-label(1035, 200, "MCP / HTTPS · client credentials")
+arrow(1232, 246, 1232, 350)
+badge(1232, 298, 6)
 
-# Managed MCP -> Genie
-arrow(1367, 268, 1367, 364)
-label(1379, 322, "invoke", anchor="start")
+arrow(1232, 426, 1232, 522)
+label(1244, 478, "governed SQL", anchor="start", small=True)
 
-# Genie -> Unity Catalog
-arrow(1335, 442, 1235, 552)
-label(1247, 505, "governed SQL", anchor="end")
+arrow(1232, 598, 1232, 686)
 
-# Unity Catalog -> Delta
-arrow(1240, 600, 1490, 600)
-label(1365, 590, "authorized read")
+arrow(1520, 560, 1300, 560, dashed=True)
 
-# ---------------------------------------------------------------- footnote
 a(
-    f'<text x="1052" y="772" font-size="14" fill="{MUTED}">'
-    f"Unity Catalog enforces the service principal’s permissions and audits SQL under that identity.</text>"
+    f'<path d="M 1062 782 L 430 782" fill="none" stroke="{LINE}" '
+    f'stroke-width="2" marker-end="url(#ah)"/>'
 )
-a(
-    f'<text x="1052" y="793" font-size="14" fill="{MUTED}">'
-    f"For per-user identity and attribution, see the Auth model note in the README.</text>"
-)
+label(770, 772, "tool result, returned to the Runtime", small=True)
+badge(560, 782, 7)
+
+# ---------------------------------------------------------------- the point
+pill(165, 848, 470, "Genie runs as the service principal, not as the person asking", BOX_DBX_BG, BOX_DBX_EDGE)
+for i, ln in enumerate(
+    [
+        "Unity Catalog attributes every statement to the service principal configured in the outbound "
+        "OAuth2 credential provider. That is the right",
+        "model for a shared, application-level integration, and it is explicitly NOT per-user "
+        "authorization. The identity-and-attribution figure",
+        "shows which principal lands in which audit log, and what you can and cannot answer from them.",
+    ]
+):
+    a(f'<text x="165" y="{906 + i * 22}" font-size="14" fill="{MUTED}">{ln}</text>')
 
 a("</svg>")
 
