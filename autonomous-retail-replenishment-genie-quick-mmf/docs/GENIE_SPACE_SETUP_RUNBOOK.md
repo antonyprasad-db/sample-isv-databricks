@@ -48,8 +48,8 @@ than the name above, so set `GENIE_SPACE_TITLE` to that to look up a scripted Ag
 `cleanup/cleanup.sh` discovers by the same variable when `GENIE_SPACE_ID` is unset, so on the console
 path record the id or set `GENIE_SPACE_TITLE` in your env file.
 
-The id also appears in the Agent's URL, but not necessarily as the last path segment, and the prefix
-changed with the Spaces-to-Agents rename, so prefer the two routes above. The UI says Agent ID, the API
+The id also appears in the Agent's URL, though not necessarily as the last path segment, so prefer
+the two routes above. The UI says Agent ID, the API
 returns `space_id`, and `<GENIE_SPACE_ID>` keeps its original name.
 
 ## STEP 2 — Add the six tables/views
@@ -71,23 +71,26 @@ this tab **Data**.
 ## STEP 3 — Paste the Agent instructions
 **Configure → Instructions** → paste everything below the `---` line of `genie/genie_instructions.md`,
 which defines what a SKU is, how to resolve product/region names, and the surge output contract. The
-lines above the `---` are notes for you, not instructions for Genie.
+lines above the `---` are notes for you, not instructions for Genie. The tune-quality docs call the
+plain-text section of this tab **Text**.
 
 ## STEP 4 — Add the surge example query
 **Configure → Examples** → **Add** an example query. Enter the question *"Which SKUs have a demand
 surge?"* and, as its SQL, paste `genie/genie_surge_trusted_query.sql` from its `WITH` line down; the
 comment lines above it are notes for you. This shows Genie the SQL to use for surge questions. The
 unattended Flow asks with its own longer prompt (`flow/flow_definition.json`), not this exact
-question. Per the
-[Databricks docs](https://docs.databricks.com/aws/en/genie-agents/tune-quality), only a *parameterized* example query is a
-trusted asset that returns a verified answer, and this one has no parameters, so check the surge
-answer in STEP 5 rather than assuming Genie reuses the SQL verbatim on every run.
+question. Per the [Databricks docs](https://docs.databricks.com/aws/en/genie-agents/tune-quality),
+trusted assets are parameterized example queries and SQL functions, which return a verified answer
+in chat mode; this query is neither, so check the surge answer in STEP 5 rather than assuming Genie
+reuses the SQL verbatim on every run.
 
 ## STEP 5 — Validate the Agent directly (before wiring Quick)
 In the Genie Agent chat:
 - *"How many SKUs do we have?"* → **1,000**
-- *"Which SKUs have a demand surge?"* → **6** surging SKUs, the set the Flow should act on (see
-  `flow/flow_build_guide.md`)
+- The Flow's own surge prompt (Step 1, Detect Demand Surges, in `flow/flow_definition.json`) →
+  **6** surging SKUs with the seven columns above. This is the check that matters: the Flow sends
+  that prompt, not the example's question, so it is the one that shows whether Genie stays on the
+  example SQL (see `flow/flow_build_guide.md`)
 - *"Which products are surging in the Northeast?"* → returns the surging SKUs with
   `unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, surge_ratio`
 - *"Is Skim Milk demand spiking in the Northeast?"* → surge answer, ratio ~1.69, ~50 units/7d

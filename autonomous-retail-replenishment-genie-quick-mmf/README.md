@@ -116,7 +116,8 @@ as console-only; substitute your `<PLACEHOLDER>` values throughout.
    Notebook 04 scopes the Genie views to Chronos-2 (`MODEL_FILTER="Chronos2"`) for this walkthrough; set
    `MODEL_FILTER=None` to expose all models MMF ran and enable model-comparison questions.
 4. **Genie Agent** — create the agent, add its six tables, paste `genie/genie_instructions.md` from
-   below its `---`, and add `genie/genie_surge_trusted_query.sql` as an example query. See **`docs/GENIE_SPACE_SETUP_RUNBOOK.md`**.
+   below its `---`, and add `genie/genie_surge_trusted_query.sql`, from its `WITH` line, as an
+   example query. See **`docs/GENIE_SPACE_SETUP_RUNBOOK.md`**.
 5. **Order API** — deploy `order-api/supplier-order-api.yaml` (CloudFormation; the deploy command with
    `CAPABILITY_NAMED_IAM` is in `docs/QUICK_ACTION_TICKET_RUNBOOK.md` STEP 0). Capture the `ApiBaseUrl`
    stack output for the OpenAPI connector.

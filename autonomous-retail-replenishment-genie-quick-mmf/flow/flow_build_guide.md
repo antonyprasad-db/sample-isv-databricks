@@ -48,9 +48,10 @@ Step 7  Generate Consolidated Report    (reasoning, after the group)
 - **Write actions require confirmation on manual runs**; the **schedule** has a "Run with no
   confirmation" toggle that makes routine orders auto-fire unattended.
 - **Determinism:** Genie writes SQL per run and can drift. Adding the surge query as a Genie example
-  query steers it toward that SQL, but the query has no parameters, so per the
-  [Databricks docs](https://docs.databricks.com/aws/en/genie-agents/tune-quality) it is not a trusted asset and reuse
-  is not guaranteed. Check for the 6-SKU result before scheduling unattended runs.
+  query steers it toward that SQL, but per the
+  [Databricks docs](https://docs.databricks.com/aws/en/genie-agents/tune-quality) trusted assets are
+  parameterized example queries and SQL functions, and this query is neither, so
+  reuse is not guaranteed. Check for the 6-SKU result before scheduling unattended runs.
 
 ---
 

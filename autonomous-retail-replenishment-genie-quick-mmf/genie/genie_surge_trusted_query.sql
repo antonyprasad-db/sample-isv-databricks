@@ -1,8 +1,8 @@
 -- Genie example query for the "Which SKUs have a demand surge?" question.
 -- Add this in the Genie Agent under Configure -> Examples, paired with the sample question
 -- "Which SKUs have a demand surge?", to steer Genie toward this SQL instead of its own.
--- It has no parameters, so per the Databricks docs it is an example query, not a trusted asset
--- with a verified answer: validate the surge answer (runbook STEP 5) before relying on the Flow.
+-- Per the Databricks docs, trusted assets are parameterized example queries and SQL functions;
+-- this query is neither, so validate the surge answer (runbook STEP 5) before relying on the Flow.
 --
 -- Returns one row per surging SKU with the clean matching keys the downstream Flow steps need:
 --   unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, surge_ratio
