@@ -16,13 +16,13 @@ Console steps are in the Databricks workspace UI.
 
 ## STEP 1 — Create the Agent
 In the Databricks workspace, click **Genie Agents** in the sidebar, then **New** in the upper-right
-corner, and create the Agent with these values:
+corner. Choose the six objects listed in STEP 2 as the data sources and click **Create**. Then open
+**Configure → About** and, under **About this agent**, use its edit icon to set:
 
 | Field | Value |
 |---|---|
-| Agent name | `Fresh Retail Sales Forecasting` |
-| SQL warehouse | `supply-chain-genie` (your serverless warehouse) |
-| Default catalog / schema | `mmf` / `fresh_retail_net` |
+| Name | `Fresh Retail Sales Forecasting` |
+| Warehouse | `supply-chain-genie` (your serverless warehouse) |
 
 Save, then record the id as `<GENIE_SPACE_ID>` in `.supply-chain-automation-env`: `cleanup/cleanup.sh`
 reads it, and the connector runbook needs it for the MCP endpoint. If you created the Agent with
@@ -34,25 +34,28 @@ the CLI, with your env file sourced:
 
 ```bash
 databricks genie list-spaces --profile "${DBX_PROFILE:?source .supply-chain-automation-env first}" \
-  --output json \
+  --page-size 100 --output json \
   | jq -r --arg t "${GENIE_SPACE_TITLE:-Fresh Retail Sales Forecasting}" \
       '.spaces[]? | select(.title==$t) | .space_id'
 ```
 
-This should print exactly one id. It reads only the first page of results, so in a workspace with many
-Genie Agents it can print nothing even though yours exists; use the Configure panel then. Two ids mean
-two Agents share the title. `scripts/setup_databricks.sh` titles the Agent
-`Supply Chain Demand Forecasting (Chronos-2)` rather than the name above, so set `GENIE_SPACE_TITLE` to
-that to look up a scripted Agent. `cleanup/cleanup.sh` discovers by the same variable when
-`GENIE_SPACE_ID` is unset, which is why recording the id matters on the console path.
+This should print exactly one id. It reads one page of results, and 100 is the most a page returns
+(the default is 20), so in a workspace with more Genie Agents than that it can print nothing even
+though yours exists; use the Configure panel then. Two ids mean two Agents share the title.
+
+`scripts/setup_databricks.sh` titles the Agent `Supply Chain Demand Forecasting (Chronos-2)` rather
+than the name above, so set `GENIE_SPACE_TITLE` to that to look up a scripted Agent.
+`cleanup/cleanup.sh` discovers by the same variable when `GENIE_SPACE_ID` is unset, so on the console
+path record the id or set `GENIE_SPACE_TITLE` in your env file.
 
 The id also appears in the Agent's URL, but not necessarily as the last path segment, and the prefix
 changed with the Spaces-to-Agents rename, so prefer the two routes above. The UI says Agent ID, the API
 returns `space_id`, and `<GENIE_SPACE_ID>` keeps its original name.
 
 ## STEP 2 — Add the six tables/views
-In the Agent, go to **Configure → Data** and click **Add** (the tuning docs label this tab **Sources**),
-then add exactly these **6** objects from `mmf.fresh_retail_net`:
+Confirm **Configure → Sources** lists exactly these **6** objects from `mmf.fresh_retail_net`,
+adding any that are missing with **Add**. The [set-up docs](https://docs.databricks.com/aws/en/genie-agents/set-up) still call
+this tab **Data**.
 
 | # | Object | Created by | Purpose |
 |---|---|---|---|
@@ -66,14 +69,17 @@ then add exactly these **6** objects from `mmf.fresh_retail_net`:
 (These are the 6 objects the connector runbook and end-to-end tests refer to as "the 6 tables.")
 
 ## STEP 3 — Paste the Agent instructions
-**Configure → Text** → paste the full contents of `genie/genie_instructions.md` as the general
-instructions. These define what a SKU is, how to resolve product/region names, and the surge output
-contract.
+**Configure → Instructions** → paste everything below the `---` line of `genie/genie_instructions.md`,
+which defines what a SKU is, how to resolve product/region names, and the surge output contract. The
+lines above the `---` are notes for you, not instructions for Genie.
 
-## STEP 4 — Pin the trusted surge query (determinism)
-**Configure → Examples** → **Add** an example query → paste `genie/genie_surge_trusted_query.sql`.
-Mark it **trusted**. This is what makes unattended surge detection reproducible: Genie reuses this
-exact SQL instead of generating (and drifting) its own each run.
+## STEP 4 — Add the surge example query
+**Configure → Examples** → **Add** an example query. Enter the question *"Which SKUs have a demand
+surge?"* and paste `genie/genie_surge_trusted_query.sql` as its SQL. This shows Genie the SQL to use
+for the surge question, which is what the unattended Flow asks. Per the
+[Databricks docs](https://docs.databricks.com/aws/en/genie-agents/tune-quality), only a *parameterized* example query is a
+trusted asset that returns a verified answer, and this one has no parameters, so check the surge
+answer in STEP 5 rather than assuming Genie reuses the SQL verbatim on every run.
 
 ## STEP 5 — Validate the Agent directly (before wiring Quick)
 In the Genie Agent chat:

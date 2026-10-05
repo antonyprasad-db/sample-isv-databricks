@@ -5,7 +5,8 @@ Sequence goes from "is each piece connected" → "do they fuse" → "does the fu
 Each step lists the exact prompt and the expected result, so a failure pinpoints the broken layer.
 
 ## Prerequisites checklist (all already done — confirm before testing)
-- [ ] Genie Agent "Fresh Retail Sales Forecasting" on Serverless warehouse `supply-chain-genie`, 6 tables.
+- [ ] Genie Agent "Fresh Retail Sales Forecasting" on Serverless warehouse `supply-chain-genie`, 6 tables
+  (or, if `scripts/setup_databricks.sh` created it, `Supply Chain Demand Forecasting (Chronos-2)` on `Supply Chain Serverless Warehouse`).
 - [ ] Quick → Genie MCP connector created (User auth OAuth).
 - [ ] Quick → S3 Tables dataset `supplier_availability` published (Direct Query), region columns present.
 - [ ] Quick custom actions added: Order API (`submitOrder`) + Ticket API (`createTicket`). (The Flows

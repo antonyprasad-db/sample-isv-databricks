@@ -11,8 +11,9 @@ supplier could cover — all with no human interaction.
 ---
 
 ## Prerequisites (must exist before building the Flow)
-1. **Genie MCP connector** in Quick → the "Fresh Retail Sales Forecasting" Agent
-   (see QUICK_DATABRICKS_CONNECTOR_RUNBOOK.md). The Agent MUST have the surge **trusted query**
+1. **Genie MCP connector** in Quick → the "Fresh Retail Sales Forecasting" Agent, or
+   "Supply Chain Demand Forecasting (Chronos-2)" if `scripts/setup_databricks.sh` created it
+   (see QUICK_DATABRICKS_CONNECTOR_RUNBOOK.md). The Agent MUST have the surge **example query**
    pinned (see genie/genie_surge_trusted_query.sql + genie_instructions.md) so it returns clean,
    deterministic keys: unique_id, retailer_product_id, city_id, region, city_name,
    forecast_7d_total, surge_ratio.

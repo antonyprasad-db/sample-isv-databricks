@@ -1,7 +1,8 @@
--- Genie TRUSTED / example query for the "Which SKUs have a demand surge?" question.
--- Pin this in the Genie Agent (SQL Vault / example queries) paired with the sample question
--- "Which SKUs have a demand surge?" so Genie reuses it verbatim instead of regenerating SQL.
--- This is what makes the unattended/scheduled Flow run DETERMINISTIC (no per-run drift).
+-- Genie example query for the "Which SKUs have a demand surge?" question.
+-- Add this in the Genie Agent under Configure -> Examples, paired with the sample question
+-- "Which SKUs have a demand surge?", so Genie uses this SQL instead of generating its own.
+-- It has no parameters, so per the Databricks docs it is an example query, not a trusted asset
+-- with a verified answer: validate the surge answer (runbook STEP 5) before relying on the Flow.
 --
 -- Returns one row per surging SKU with the clean matching keys the downstream Flow steps need:
 --   unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, surge_ratio

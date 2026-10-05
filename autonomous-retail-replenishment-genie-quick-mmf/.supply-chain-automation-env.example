@@ -6,7 +6,8 @@
 #
 # Never commit the filled-in copy. Values discovered by the scripts are written
 # to scripts/.env.generated (gitignored) and reloaded automatically, so they are
-# deliberately absent from this template.
+# deliberately absent from this template. The one exception is the Genie Agent block
+# below, which is only for creating the Agent by hand in the console.
 
 # ---- AWS -------------------------------------------------------------------
 export AWS_PROFILE_SC=""          # your AWS CLI profile
@@ -32,13 +33,17 @@ export S3T_BUCKET=""              # name to create for the S3 Tables supplier bu
 export QUICK_ACCOUNT_NAME=""      # Quick account directory name
 export NOTIFICATION_EMAIL=""      # Quick notification email
 
+# ---- Genie Agent, console path only (docs/GENIE_SPACE_SETUP_RUNBOOK.md) ----
+# Leave both empty if scripts/setup_databricks.sh creates the Agent: it saves the id to
+# scripts/.env.generated, which loads after this file and takes precedence.
+# cleanup/cleanup.sh uses GENIE_SPACE_ID if set, otherwise looks the Agent up by GENIE_SPACE_TITLE,
+# whose default is the scripted title. The connector runbook needs the id for the MCP endpoint.
+export GENIE_SPACE_ID=""                    # Configure -> About -> "Agent ID"
+export GENIE_SPACE_TITLE=""                 # e.g. "Fresh Retail Sales Forecasting"
+
 # ---- Console-only ids (collected part-way through; see README run order) ----
 # These come from console steps, so they are empty on a first run and filled in
 # before the datasource/space/flow phases.
-# GENIE_SPACE_ID is console-collected only if you created the Genie Agent in the console. The
-# scripted genie phase saves it to scripts/.env.generated instead, which loads after this file
-# and takes precedence, so leave this empty on that path.
-export GENIE_SPACE_ID=""                    # Genie Agent id: Configure -> About ("Agent ID")
 export DATASET_ID=""                        # aws quicksight list-data-sets
 export GENIE_MCP_CONNECTOR_ID=""            # list-action-connectors, MODEL_CONTEXT_PROTOCOL row
 export OPENAPI_ACTION_CONNECTOR_ID=""       # list-action-connectors, OPEN_API row
