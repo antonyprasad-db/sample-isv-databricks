@@ -11,10 +11,11 @@ supplier could cover — all with no human interaction.
 ---
 
 ## Prerequisites (must exist before building the Flow)
-1. **Genie MCP connector** in Quick → the "Fresh Retail Sales Forecasting" space
-   (see QUICK_DATABRICKS_CONNECTOR_RUNBOOK.md). The space MUST have the surge **trusted query**
-   pinned (see genie/genie_surge_trusted_query.sql + genie_instructions.md) so it returns clean,
-   deterministic keys: unique_id, retailer_product_id, city_id, region, city_name,
+1. **Genie MCP connector** in Quick → the "Fresh Retail Sales Forecasting" Agent (titled
+   "Supply Chain Demand Forecasting (Chronos-2)" if `scripts/setup_databricks.sh` created it)
+   (see QUICK_DATABRICKS_CONNECTOR_RUNBOOK.md). The Agent MUST have the surge **example query**
+   added (see genie/genie_surge_trusted_query.sql + genie_instructions.md) to steer it toward clean
+   keys: unique_id, retailer_product_id, city_id, region, city_name,
    forecast_7d_total, surge_ratio.
 2. **S3 Tables supplier dataset** connected to Quick (Direct Query) — see QUICK_S3TABLES_RUNBOOK.md.
 3. **Supplier Order API** deployed (CloudFormation) and registered in Quick as an **OpenAPI connector**
@@ -46,8 +47,11 @@ Step 7  Generate Consolidated Report    (reasoning, after the group)
   "Choose for me" makes the step narrate the call instead of invoking it.
 - **Write actions require confirmation on manual runs**; the **schedule** has a "Run with no
   confirmation" toggle that makes routine orders auto-fire unattended.
-- **Determinism:** Genie writes SQL per run and will drift. Pinning the surge query as a Genie
-  trusted/example query makes unattended runs reproducible.
+- **Determinism:** Genie writes SQL per run and can drift. Adding the surge query as a Genie example
+  query steers it toward that SQL, but per the
+  [Databricks docs](https://docs.databricks.com/aws/en/genie-agents/tune-quality) trusted assets are
+  parameterized example queries and SQL functions, and this query is neither, so
+  reuse is not guaranteed. Check for the 6-SKU result before scheduling unattended runs.
 
 ---
 
@@ -61,7 +65,8 @@ unique_id, retailer_product_id, city_id, region, city_name, forecast_7d_total, s
 A demand surge is where the average forecast over 2024-06-26 to 2024-07-02 is at least 1.5x the
 average actual sales over the prior 14 days (2024-06-12 to 2024-06-25).
 ```
-(Genie reuses the pinned trusted query → deterministic, correct keys. Returns 6 SKUs.)
+(With the surge example query added this should return 6 SKUs with correct keys; verify that before
+scheduling.)
 
 ### Create the SKU Processing reasoning group
 - Type: **Reasoning Group**

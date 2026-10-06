@@ -66,7 +66,7 @@ aws s3tables delete-table --table-bucket-arn <BUCKET_ARN> --namespace supply_cha
 delete the Flow, the OpenAPI/order connector, the Genie MCP connector, and the S3 Tables dataset
 if they were created only for this demo.
 
-**4. Databricks:** delete the Genie space if demo-only; drop the demo catalog/schema
+**4. Databricks:** delete the Genie Agent if demo-only; drop the demo catalog/schema
 (`mmf.fresh_retail_net`, dims, views) if not reused; stop/delete the Serverless SQL Warehouse.
 Serverless compute auto-stops, but deleting removes it from the workspace.
 

@@ -5,7 +5,9 @@ Sequence goes from "is each piece connected" → "do they fuse" → "does the fu
 Each step lists the exact prompt and the expected result, so a failure pinpoints the broken layer.
 
 ## Prerequisites checklist (all already done — confirm before testing)
-- [ ] Genie space "Fresh Retail Sales Forecasting" on Serverless warehouse `supply-chain-genie`, 6 tables.
+- [ ] Genie Agent "Fresh Retail Sales Forecasting" on Serverless warehouse `supply-chain-genie`, 6 tables
+  (if `scripts/setup_databricks.sh` created it, the Agent is titled
+  `Supply Chain Demand Forecasting (Chronos-2)` and runs on the warehouse that script created or reused).
 - [ ] Quick → Genie MCP connector created (User auth OAuth).
 - [ ] Quick → S3 Tables dataset `supplier_availability` published (Direct Query), region columns present.
 - [ ] Quick custom actions added: Order API (`submitOrder`) + Ticket API (`createTicket`). (The Flows
@@ -125,7 +127,7 @@ group, per-step "only run if" fork, and the schedule) is documented in `flow/flo
 this tier is the end-to-end validation of that Flow.
 
 The Flow structure (see `flow/flow_build_guide.md` for the step-by-step prompts):
-- **Step 1 — Detect Demand Surges** (Genie MCP, pinned trusted query): returns the surging SKUs.
+- **Step 1 — Detect Demand Surges** (Genie MCP, surge example query): returns the surging SKUs.
 - **SKU Processing reasoning group** (iterates per surging SKU):
   - **Lookup Suppliers** (S3 Tables Direct Query) → supplier options with 7-day qty, lead time, cost.
   - **Select Best Supplier** (reasoning): cheapest supplier whose 7-day quantity covers demand →

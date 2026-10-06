@@ -59,9 +59,9 @@ notebooks/        AWS-authored Databricks notebooks: 04 Genie views, 03 product/
   run_notebook.sh parameterized Databricks job runner (submit → poll → report; handles nb04 MODEL_FILTER)
 supplier-feed/    load_supplier_availability.py — independent S3 Tables loader (PyIceberg)
 order-api/        CloudFormation + OpenAPI spec for the mock external Supplier Order API
-genie/            Genie space instructions + the pinned surge trusted query + deterministic surge SQL
+genie/            Genie Agent instructions, the surge example query, and the scripted Agent definition
 flow/             flow_definition.json (create-flow input) + flow_build_guide.md (step-by-step build)
-docs/             setup runbooks (Quick account, Genie space, Quick connector, S3 Tables, order/ticket action, end-to-end test) + cost/cleanup
+docs/             setup runbooks (Quick account, Genie Agent, Quick connector, S3 Tables, order/ticket action, end-to-end test) + cost/cleanup
 cleanup/          cleanup.sh — tears down all AWS + Databricks resources created by the walkthrough
 smoketest/        local_logic_smoketest.py — offline DETECT→DECIDE logic check (no live infra)
 ```
@@ -115,8 +115,9 @@ as console-only; substitute your `<PLACEHOLDER>` values throughout.
    Databricks job runner).
    Notebook 04 scopes the Genie views to Chronos-2 (`MODEL_FILTER="Chronos2"`) for this walkthrough; set
    `MODEL_FILTER=None` to expose all models MMF ran and enable model-comparison questions.
-4. **Genie Agent** — create the agent, add its six tables, paste `genie/genie_instructions.md`, and pin
-   `genie/genie_surge_trusted_query.sql` as a trusted query. See **`docs/GENIE_SPACE_SETUP_RUNBOOK.md`**.
+4. **Genie Agent** — create the agent, add its six tables, paste `genie/genie_instructions.md` from
+   below its `---`, and add `genie/genie_surge_trusted_query.sql`, from its `WITH` line, as an
+   example query. See **`docs/GENIE_SPACE_SETUP_RUNBOOK.md`**.
 5. **Order API** — deploy `order-api/supplier-order-api.yaml` (CloudFormation; the deploy command with
    `CAPABILITY_NAMED_IAM` is in `docs/QUICK_ACTION_TICKET_RUNBOOK.md` STEP 0). Capture the `ApiBaseUrl`
    stack output for the OpenAPI connector.
@@ -167,7 +168,7 @@ Find them all with: `grep -rn "<[A-Z_]*>" .`
 | `<REGION>` | the single AWS region for the whole solution (must support S3 Tables + Quick; e.g. `us-west-2`) | you choose it once |
 | `<WORKSPACE_HOST>` | Databricks workspace host (`dbc-xxxx.cloud.databricks.com`) | workspace URL |
 | `<DATABRICKS_ACCOUNT_ID>` | Databricks account id | account console |
-| `<GENIE_SPACE_ID>` | Genie space id | space URL after you create it |
+| `<GENIE_SPACE_ID>` | Genie Agent id | the Agent's **Configure → About** panel, labelled Agent ID |
 | `<WAREHOUSE_ID>` | Serverless SQL warehouse id | SQL Warehouses list |
 | `<GENIE_MCP_CONNECTOR_ID>` / `<OPENAPI_ACTION_CONNECTOR_ID>` | Quick action-connector ids | `aws quicksight list-action-connectors` |
 | `<OPENAPI_SUBMIT_ORDER_ACTION_ID>` / `<OPENAPI_CREATE_TICKET_ACTION_ID>` | OpenAPI action ids | connector Test action, or `describe-action-connector` |
@@ -186,7 +187,7 @@ See `docs/COST_AND_CLEANUP.md`. In short: the solution is serverless/usage-based
 (~USD 1.50/month at rest — mostly one customer-managed KMS key + the Secrets Manager secret);
 tear down the order API with
 `aws cloudformation delete-stack --stack-name supplier-order-api --region <REGION>`, delete the
-S3 Tables data, and remove the Quick flow/connectors and Databricks space/warehouse.
+S3 Tables data, and remove the Quick flow/connectors and the Genie Agent and SQL warehouse.
 
 ## License
 MIT-0. See `LICENSE`.

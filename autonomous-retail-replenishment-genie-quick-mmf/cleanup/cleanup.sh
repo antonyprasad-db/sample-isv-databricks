@@ -76,7 +76,7 @@ show "Quick MCP connector"   "$GENIE_MCP_CONNECTOR_ID"
 show "Quick OpenAPI connector" "$OPENAPI_CONNECTOR_ID"
 show "S3 Tables bucket"      "${S3T_BUCKET:+$S3T_BUCKET (table+namespace+bucket)}"
 show "Order API stack"       "supplier-order-api (region ${ORDER_API_REGION})"
-show "Genie space (Databricks)" "$GENIE_SPACE_ID"
+show "Genie Agent (Databricks)" "$GENIE_SPACE_ID"
 show "SQL warehouse (Databricks)" "$WAREHOUSE_ID"
 show "Databricks catalog"    "mmf (--force cascade)"
 echo
@@ -126,7 +126,7 @@ fi
 del "Order API stack" aws cloudformation delete-stack --stack-name supplier-order-api --region "$ORDER_API_REGION" --profile "$AWS_PROFILE"
 aws cloudformation wait stack-delete-complete --stack-name supplier-order-api --region "$ORDER_API_REGION" --profile "$AWS_PROFILE" 2>/dev/null || true
 
-[[ -n "$GENIE_SPACE_ID" ]] && del "Genie space (Databricks)"   databricks genie trash-space "$GENIE_SPACE_ID" --profile "$DBX_PROFILE" || skip "Genie space (Databricks)"
+[[ -n "$GENIE_SPACE_ID" ]] && del "Genie Agent (Databricks)"   databricks genie trash-space "$GENIE_SPACE_ID" --profile "$DBX_PROFILE" || skip "Genie Agent (Databricks)"
 [[ -n "$WAREHOUSE_ID" ]]   && del "SQL warehouse (Databricks)" databricks warehouses delete "$WAREHOUSE_ID" --profile "$DBX_PROFILE"  || skip "SQL warehouse (Databricks)"
 del "Databricks catalog mmf" databricks catalogs delete mmf --force --profile "$DBX_PROFILE"
 

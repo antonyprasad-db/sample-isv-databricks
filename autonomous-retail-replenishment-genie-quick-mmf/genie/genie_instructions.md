@@ -1,10 +1,10 @@
-# Genie Space Instructions — "Fresh Retail Sales Forecasting"
+# Genie Agent Instructions — "Fresh Retail Sales Forecasting"
 
-Paste this into the Genie space's **Instructions** field. It defines the semantic model (SKU
-definition, columns, name resolution) AND a strict **surge output contract** so the demand-surge
-query is deterministic — the part that makes the unattended Quick Flow reliable.
+Paste everything below the `---` into the Genie Agent's **Configure → Instructions**. It
+defines the semantic model (SKU definition, columns, name resolution) AND a strict **surge output
+contract** that keeps the demand-surge answer in the shape the unattended Quick Flow expects.
 
-Pair this with the pinned **trusted/example query** (`genie_surge_trusted_query.sql`) for the
+Pair this with the **example query** (`genie_surge_trusted_query.sql`) for the
 question "Which SKUs have a demand surge?".
 
 ---
