@@ -159,14 +159,15 @@ class GenieTitleLookup(_Harness):
         proc, calls = self.run_cleanup()
         self.assertEqual(self.deletes(calls, "databricks genie trash-space"), [], proc.stdout)
         self.assertIn("2 Agents titled", proc.stdout)
-        self.assertIn("sp-a sp-b", proc.stdout)
+        self.assertIn(": sp-a sp-b. Set GENIE_SPACE_ID", proc.stdout)
+        self.assertIn("Genie Agent (Databricks): skipped <2 Agents titled", proc.stdout)
 
     def test_an_unreadable_page_trashes_nothing(self):
         # Page 1 has a match, but page 2 cannot be read, so a duplicate could be hiding there.
         self.fixture("spaces_first.json", _page([("sp-a", SCRIPTED_TITLE)], next_token="p2"))
         proc, calls = self.run_cleanup()
         self.assertEqual(self.deletes(calls, "databricks genie trash-space"), [], proc.stdout)
-        self.assertIn("could not list Genie Agents", proc.stdout)
+        self.assertIn("Genie Agent (Databricks): skipped <could not list Genie Agents", proc.stdout)
 
     def test_every_page_is_requested_at_the_maximum_page_size(self):
         self.fixture("spaces_first.json", _page([], next_token="p2"))

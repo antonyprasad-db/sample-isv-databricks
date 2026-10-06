@@ -80,7 +80,7 @@ if [[ -z "${GENIE_SPACE_ID:-}" ]]; then
     if [[ "$GENIE_MATCH_COUNT" -eq 1 ]]; then
       GENIE_SPACE_ID="$GENIE_MATCHES"
     elif [[ "$GENIE_MATCH_COUNT" -gt 1 ]]; then
-      GENIE_SPACE_NOTE="<${GENIE_MATCH_COUNT} Agents titled '${GENIE_SPACE_TITLE}': $(tr '\n' ' ' <<<"$GENIE_MATCHES")set GENIE_SPACE_ID to choose; will skip>"
+      GENIE_SPACE_NOTE="<${GENIE_MATCH_COUNT} Agents titled '${GENIE_SPACE_TITLE}': $(paste -s -d ' ' - <<<"$GENIE_MATCHES"). Set GENIE_SPACE_ID to choose one; will skip>"
     fi
   else
     GENIE_SPACE_NOTE="<could not list Genie Agents; set GENIE_SPACE_ID; will skip>"
@@ -166,7 +166,13 @@ fi
 del "Order API stack" aws cloudformation delete-stack --stack-name supplier-order-api --region "$ORDER_API_REGION" --profile "$AWS_PROFILE"
 aws cloudformation wait stack-delete-complete --stack-name supplier-order-api --region "$ORDER_API_REGION" --profile "$AWS_PROFILE" 2>/dev/null || true
 
-[[ -n "$GENIE_SPACE_ID" ]] && del "Genie Agent (Databricks)"   databricks genie trash-space "$GENIE_SPACE_ID" --profile "$DBX_PROFILE" || skip "Genie Agent (Databricks)"
+if [[ -n "$GENIE_SPACE_ID" ]]; then
+  del "Genie Agent (Databricks)" databricks genie trash-space "$GENIE_SPACE_ID" --profile "$DBX_PROFILE"
+elif [[ -n "$GENIE_SPACE_NOTE" ]]; then
+  echo "  – Genie Agent (Databricks): skipped ${GENIE_SPACE_NOTE}"
+else
+  skip "Genie Agent (Databricks)"
+fi
 [[ -n "$WAREHOUSE_TO_DELETE" ]] && del "SQL warehouse (Databricks)" databricks warehouses delete "$WAREHOUSE_TO_DELETE" --profile "$DBX_PROFILE" || skip "SQL warehouse (Databricks)"
 if [[ -n "$WAREHOUSE_KEPT" ]]; then
   echo "  – SQL warehouse ${WAREHOUSE_KEPT}: kept, setup_databricks.sh did not create it. If it was demo-only:"
