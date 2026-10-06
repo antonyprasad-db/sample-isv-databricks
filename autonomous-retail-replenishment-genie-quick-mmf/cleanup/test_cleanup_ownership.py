@@ -169,6 +169,23 @@ class GenieTitleLookup(_Harness):
         self.assertEqual(self.deletes(calls, "databricks genie trash-space"), [], proc.stdout)
         self.assertIn("Genie Agent (Databricks): skipped <could not list Genie Agents", proc.stdout)
 
+    def test_no_matching_title_trashes_nothing_and_warns_of_nothing(self):
+        # The everyday case: the listing reads fine, the Agent is already gone or never existed.
+        self.fixture("spaces_first.json", _page([("sp-other", "Someone else's Agent")]))
+        proc, calls = self.run_cleanup()
+        self.assertEqual(self.deletes(calls, "databricks genie trash-space"), [], proc.stdout)
+        self.assertIn("Genie Agent (Databricks): not present", proc.stdout)
+        self.assertNotIn("Agents titled", proc.stdout)
+        self.assertNotIn("could not list Genie Agents", proc.stdout)
+
+    def test_endless_pagination_stops_and_trashes_nothing(self):
+        # A page whose next_page_token points back at itself: the lookup must give up, not hang.
+        self.fixture("spaces_first.json", _page([("sp-a", SCRIPTED_TITLE)], next_token="first"))
+        proc, calls = self.run_cleanup()
+        self.assertEqual(self.deletes(calls, "databricks genie trash-space"), [], proc.stdout)
+        self.assertIn("Genie Agent (Databricks): skipped <could not list Genie Agents", proc.stdout)
+        self.assertEqual(len(self.deletes(calls, "databricks genie list-spaces")), 100)
+
     def test_every_page_is_requested_at_the_maximum_page_size(self):
         self.fixture("spaces_first.json", _page([], next_token="p2"))
         self.fixture("spaces_p2.json", _page([("sp-mine", SCRIPTED_TITLE)]))
