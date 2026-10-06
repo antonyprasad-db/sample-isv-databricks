@@ -734,7 +734,7 @@ class RequireSeedConfigTest(unittest.TestCase):
 
 
 class ResolveWarehouseTest(unittest.TestCase):
-    """An explicit warehouse wins; otherwise the space must name one."""
+    """An explicit warehouse wins; otherwise the Agent must name one."""
 
     def test_explicit_warehouse_short_circuits_the_lookup(self):
         def explode(*a, **k):  # pragma: no cover - must not be called

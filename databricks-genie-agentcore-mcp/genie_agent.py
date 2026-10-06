@@ -7,7 +7,7 @@ The gateway handles all auth complexity:
 
 Deployed with the AgentCore CLI, not run directly:
 
-    agentcore configure --entrypoint genie_agent.py
+    agentcore configure --entrypoint genie_agent.py --non-interactive --deployment-type container --disable-memory --region <region>
     agentcore deploy
 
 Configuration comes from the environment -- GATEWAY_URL, COGNITO_TOKEN_ENDPOINT,
@@ -36,10 +36,11 @@ _ENV_KEYS = ("GATEWAY_URL", "COGNITO_TOKEN_ENDPOINT", "COGNITO_CLIENT_ID", "COGN
 def _load_config() -> dict:
     """Resolve runtime config, preferring the environment over the state file.
 
-    The deployed agent should not depend on gateway_config.json. That file is gitignored,
-    so the build may exclude it from the image (the agent then fails at first use), and if
-    it IS included the Cognito client secret is baked into an ECR layer. Passing the five
-    values below as Runtime environment variables avoids both -- see the README.
+    The deployed agent should not depend on gateway_config.json. That file ships on both
+    deployment paths (measured on starter toolkit 0.3.13), putting the Cognito client secret in an
+    ECR image layer on container builds and in the S3 code.zip on direct_code_deploy.
+    Passing the five values below as Runtime environment variables avoids that, but note they are
+    not persisted across deploys -- see the README.
 
     gateway_config.json remains the local-development path, so `python invoke.py` and a
     locally-run entrypoint keep working with no extra setup.

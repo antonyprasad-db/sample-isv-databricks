@@ -286,7 +286,7 @@ def register_genie_target(agentcore, gateway_id: str, provider_arn: str, on_crea
     target = agentcore.create_gateway_target(
         gatewayIdentifier=gateway_id,
         name=TARGET_NAME,
-        description=f"Databricks Genie space {GENIE_SPACE_ID} as MCP tool",
+        description=f"Databricks Genie Agent {GENIE_SPACE_ID} as MCP tool",
         targetConfiguration={"mcp": {"mcpServer": {"endpoint": mcp_url}}},
         credentialProviderConfigurations=[
             {

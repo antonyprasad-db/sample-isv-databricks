@@ -1,4 +1,4 @@
-"""Populate a tiny sample lakehouse so a Genie space can answer the demo questions.
+"""Populate a tiny sample lakehouse so a Genie Agent can answer the demo questions.
 
 Creates one catalog / one schema / two small tables (`products` and `sales`) in
 Unity Catalog and seeds them with ~1,400 rows — just enough to answer the
@@ -141,7 +141,7 @@ def mint_token(client_id: str, client_secret: str) -> str:
 
 
 def resolve_warehouse(headers: dict) -> str:
-    """Use DATABRICKS_WAREHOUSE_ID if set, else the warehouse behind the space."""
+    """Use DATABRICKS_WAREHOUSE_ID if set, else the warehouse behind the Agent."""
     if DATABRICKS_WAREHOUSE_ID:
         return DATABRICKS_WAREHOUSE_ID
     resp = _request(
@@ -153,7 +153,7 @@ def resolve_warehouse(headers: dict) -> str:
     wid = resp.json().get("warehouse_id")
     if not wid:
         raise SystemExit(
-            f"Genie space {GENIE_SPACE_ID} returned no warehouse_id — set "
+            f"Genie Agent {GENIE_SPACE_ID} returned no warehouse_id — set "
             "DATABRICKS_WAREHOUSE_ID explicitly."
         )
     return wid
@@ -497,8 +497,8 @@ def main() -> None:
         )
 
     print(
-        f"\nDone. Now add {fq}.products and {fq}.sales to your Genie space "
-        "(Genie UI -> the space -> data assets), then run:\n"
+        f"\nDone. Now add {fq}.products and {fq}.sales to your Genie Agent "
+        "(see \"Load a sample dataset\" in the README), confirm the service principal's grants, then run:\n"
         '  python invoke.py "What were our top 5 products by revenue last quarter?"'
     )
 

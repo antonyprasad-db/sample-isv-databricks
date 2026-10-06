@@ -8,7 +8,7 @@ Secrets Manager reference DATABRICKS_SECRET_ARN (the production path); see READM
     export DATABRICKS_HOST="https://dbc-xxxxxxxx-xxxx.cloud.databricks.com"
     export DATABRICKS_CLIENT_ID="<service principal application ID>"
     export DATABRICKS_CLIENT_SECRET="<OAuth M2M secret>"   # or DATABRICKS_SECRET_ARN
-    export GENIE_SPACE_ID="<Genie space ID>"
+    export GENIE_SPACE_ID="<Genie Agent ID>"
     export AWS_REGION="us-east-1"
 """
 
@@ -165,5 +165,5 @@ def require_databricks_config() -> None:
 
 
 def genie_mcp_url() -> str:
-    """Databricks-managed Genie MCP endpoint for the configured space."""
+    """Databricks-managed Genie MCP endpoint for the configured Agent."""
     return f"{DATABRICKS_HOST}/api/2.0/mcp/genie/{GENIE_SPACE_ID}"
