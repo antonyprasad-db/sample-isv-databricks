@@ -84,6 +84,9 @@ create_genie() {
       --warehouse-type PRO --enable-serverless-compute --enable-photon \
       --auto-stop-mins 10 --max-num-clusters 1 --output json | jq -r '.id')"
     echo "Created warehouse: ${WAREHOUSE_ID}"
+    # Recorded at once, before anything else can fail: cleanup/cleanup.sh deletes only the warehouse
+    # named here, so a warehouse the reader asked us to reuse is never torn down.
+    save_var WAREHOUSE_CREATED_BY_SETUP "$WAREHOUSE_ID"
   else
     echo "Using existing WAREHOUSE_ID=${WAREHOUSE_ID}"
   fi

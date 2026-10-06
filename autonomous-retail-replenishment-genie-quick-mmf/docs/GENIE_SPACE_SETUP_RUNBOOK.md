@@ -47,7 +47,8 @@ though yours exists; use the Configure panel then. Two ids mean two Agents share
 than the name above, so set `GENIE_SPACE_TITLE` to that to look up a scripted Agent.
 `cleanup/cleanup.sh` discovers by the same variable when `GENIE_SPACE_ID` is unset, so on the console
 path record the id. Setting `GENIE_SPACE_TITLE` instead is a fallback: cleanup's title lookup reads
-only the first page of results and takes the first match.
+every page of results and acts only when exactly one Agent has the title. If several share it,
+cleanup deletes none of them and lists their ids so you can set `GENIE_SPACE_ID`.
 
 The id also appears in the Agent's URL, though not necessarily as the last path segment, so prefer
 the two routes above. The UI says Agent ID, the API
